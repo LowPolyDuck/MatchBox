@@ -2,6 +2,11 @@ import { Layout } from "@/components/Layout"
 import { SpringIn } from "@/components/SpringIn"
 import { TokenSelector } from "@/components/TokenSelector"
 import { useBoostGaugeForToken, useBoostInfo } from "@/hooks/useGauges"
+import {
+  useGaugeProfile,
+  useUploadProfilePicture,
+  useUpsertGaugeProfile,
+} from "@/hooks/useGaugeProfiles"
 import { useVeBTCLocks } from "@/hooks/useLocks"
 import type { Token } from "@/hooks/useTokenList"
 import {
@@ -25,9 +30,10 @@ import {
   ParagraphSmall,
   Select,
   Skeleton,
+  Textarea,
   useStyletron,
 } from "@mezo-org/mezo-clay"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { formatUnits, parseUnits } from "viem"
 import { useAccount } from "wagmi"
 
@@ -36,7 +42,7 @@ const EXPLORER_URL =
 
 export default function IncentivesPage() {
   const [css, theme] = useStyletron()
-  const { isConnected } = useAccount()
+  const { isConnected, address: walletAddress } = useAccount()
   const { locks: veBTCLocks, isLoading: isLoadingLocks } = useVeBTCLocks()
 
   const [selectedLockIndex, setSelectedLockIndex] = useState<
@@ -44,6 +50,16 @@ export default function IncentivesPage() {
   >()
   const [incentiveToken, setIncentiveToken] = useState<Token | undefined>()
   const [incentiveAmount, setIncentiveAmount] = useState("")
+
+  // Gauge profile state
+  const [profileDescription, setProfileDescription] = useState("")
+  const [profilePicturePreview, setProfilePicturePreview] = useState<
+    string | null
+  >(null)
+  const [pendingPictureFile, setPendingPictureFile] = useState<File | null>(
+    null,
+  )
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const selectedLock =
     selectedLockIndex !== undefined ? veBTCLocks[selectedLockIndex] : undefined
@@ -55,6 +71,30 @@ export default function IncentivesPage() {
     refetch: refetchGauge,
   } = useBoostGaugeForToken(selectedLock?.tokenId)
   const { boostMultiplier } = useBoostInfo(selectedLock?.tokenId)
+
+  // Fetch existing gauge profile
+  const {
+    profile: gaugeProfile,
+    isLoading: isLoadingProfile,
+    refetch: refetchProfile,
+  } = useGaugeProfile(gaugeAddress)
+
+  const { upsertProfile, isLoading: isSavingProfile } = useUpsertGaugeProfile()
+  const { uploadPicture, isLoading: isUploadingPicture } =
+    useUploadProfilePicture()
+
+  // Sync profile data when loaded
+  useEffect(() => {
+    if (gaugeProfile) {
+      setProfileDescription(gaugeProfile.description ?? "")
+      setProfilePicturePreview(gaugeProfile.profile_picture_url)
+      setPendingPictureFile(null)
+    } else {
+      setProfileDescription("")
+      setProfilePicturePreview(null)
+      setPendingPictureFile(null)
+    }
+  }, [gaugeProfile])
 
   const {
     createGauge,
@@ -148,6 +188,48 @@ export default function IncentivesPage() {
     addIncentives(gaugeAddress, [incentiveToken.address], [amount])
   }
 
+  const handleFileSelect = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0]
+      if (file) {
+        setPendingPictureFile(file)
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setProfilePicturePreview(reader.result as string)
+        }
+        reader.readAsDataURL(file)
+      }
+    },
+    [],
+  )
+
+  const handleSaveProfile = async () => {
+    if (!gaugeAddress || !selectedLock || !walletAddress) return
+
+    let pictureUrl = gaugeProfile?.profile_picture_url ?? null
+
+    // Upload picture if there's a pending file
+    if (pendingPictureFile) {
+      const uploadedUrl = await uploadPicture(gaugeAddress, pendingPictureFile)
+      if (uploadedUrl) {
+        pictureUrl = uploadedUrl
+      }
+    }
+
+    const result = await upsertProfile({
+      gaugeAddress,
+      veBTCTokenId: selectedLock.tokenId,
+      ownerAddress: walletAddress,
+      profilePictureUrl: pictureUrl,
+      description: profileDescription || null,
+    })
+
+    if (result) {
+      setPendingPictureFile(null)
+      refetchProfile()
+    }
+  }
+
   const isLoading = isLoadingLocks
 
   return (
@@ -213,270 +295,415 @@ export default function IncentivesPage() {
           <>
             <SpringIn delay={0} variant="card">
               <Card title="Select veBTC Lock" withBorder overrides={{}}>
-              <div className={css({ padding: "16px 0" })}>
-                <Select
-                  options={veBTCLocks.map((lock, i) => ({
-                    label: `veBTC #${lock.tokenId.toString()} - ${formatUnits(lock.amount, 18).slice(0, 8)} BTC locked`,
-                    id: i.toString(),
-                  }))}
-                  value={
-                    selectedLockIndex !== undefined
-                      ? [{ id: selectedLockIndex.toString() }]
-                      : []
-                  }
-                  onChange={(params) => {
-                    const selected = params.value[0]
-                    setSelectedLockIndex(
-                      selected ? Number(selected.id) : undefined,
-                    )
-                  }}
-                  placeholder="Select your veBTC lock"
-                />
+                <div className={css({ padding: "16px 0" })}>
+                  <Select
+                    options={veBTCLocks.map((lock, i) => ({
+                      label: `veBTC #${lock.tokenId.toString()} - ${formatUnits(lock.amount, 18).slice(0, 8)} BTC locked`,
+                      id: i.toString(),
+                    }))}
+                    value={
+                      selectedLockIndex !== undefined
+                        ? [{ id: selectedLockIndex.toString() }]
+                        : []
+                    }
+                    onChange={(params) => {
+                      const selected = params.value[0]
+                      setSelectedLockIndex(
+                        selected ? Number(selected.id) : undefined,
+                      )
+                    }}
+                    placeholder="Select your veBTC lock"
+                  />
 
-                {selectedLock && (
-                  <div
-                    className={css({
-                      marginTop: "16px",
-                      padding: "16px",
-                      backgroundColor: theme.colors.backgroundSecondary,
-                      borderRadius: "8px",
-                    })}
-                  >
+                  {selectedLock && (
                     <div
                       className={css({
-                        display: "grid",
-                        gridTemplateColumns: "repeat(4, 1fr)",
-                        gap: "16px",
-                        "@media (max-width: 1024px)": {
-                          gridTemplateColumns: "repeat(2, 1fr)",
-                        },
-                        "@media (max-width: 480px)": {
-                          gridTemplateColumns: "1fr",
-                          gap: "12px",
-                        },
+                        marginTop: "16px",
+                        padding: "16px",
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        borderRadius: "8px",
                       })}
                     >
-                      <div>
-                        <LabelSmall color={theme.colors.contentSecondary}>
-                          Locked Amount
-                        </LabelSmall>
-                        <LabelMedium>
-                          {formatUnits(selectedLock.amount, 18).slice(0, 10)}{" "}
-                          BTC
-                        </LabelMedium>
-                      </div>
-                      <div>
-                        <LabelSmall color={theme.colors.contentSecondary}>
-                          Voting Power
-                        </LabelSmall>
-                        <LabelMedium>
-                          {formatUnits(selectedLock.votingPower, 18).slice(
-                            0,
-                            10,
-                          )}
-                        </LabelMedium>
-                      </div>
-                      <div>
-                        <LabelSmall color={theme.colors.contentSecondary}>
-                          Current Boost
-                        </LabelSmall>
-                        <LabelMedium>{boostMultiplier.toFixed(2)}x</LabelMedium>
-                      </div>
-                      <div>
-                        <LabelSmall color={theme.colors.contentSecondary}>
-                          Gauge
-                        </LabelSmall>
-                        {hasGauge && gaugeAddress ? (
-                          <a
-                            href={`${EXPLORER_URL}/address/${gaugeAddress}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={css({
-                              fontFamily: "monospace",
-                              fontSize: "14px",
-                              color: theme.colors.accent,
-                              textDecoration: "none",
-                              ":hover": {
-                                textDecoration: "underline",
-                              },
-                            })}
-                          >
-                            {gaugeAddress.slice(0, 6)}...
-                            {gaugeAddress.slice(-4)}
-                          </a>
-                        ) : (
-                          <LabelMedium color={theme.colors.contentSecondary}>
-                            None
-                          </LabelMedium>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Current Epoch Incentives */}
-                    {hasGauge &&
-                      !isLoadingIncentives &&
-                      incentives.length > 0 && (
-                        <div className={css({ marginTop: "16px" })}>
-                          <LabelSmall
-                            color={theme.colors.contentSecondary}
-                            marginBottom="scale200"
-                          >
-                            Current Epoch Incentives
+                      <div
+                        className={css({
+                          display: "grid",
+                          gridTemplateColumns: "repeat(4, 1fr)",
+                          gap: "16px",
+                          "@media (max-width: 1024px)": {
+                            gridTemplateColumns: "repeat(2, 1fr)",
+                          },
+                          "@media (max-width: 480px)": {
+                            gridTemplateColumns: "1fr",
+                            gap: "12px",
+                          },
+                        })}
+                      >
+                        <div>
+                          <LabelSmall color={theme.colors.contentSecondary}>
+                            Locked Amount
                           </LabelSmall>
-                          <div
-                            className={css({
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: "8px",
-                            })}
-                          >
-                            {incentives.map((incentive) => (
-                              <div
-                                key={incentive.tokenAddress}
-                                className={css({
-                                  display: "flex",
-                                  justifyContent: "space-between",
-                                  alignItems: "center",
-                                })}
-                              >
-                                <LabelMedium>{incentive.symbol}</LabelMedium>
-                                <LabelMedium>
-                                  {formatUnits(
-                                    incentive.amount,
-                                    incentive.decimals,
-                                  ).slice(0, 10)}
-                                </LabelMedium>
-                              </div>
-                            ))}
-                          </div>
+                          <LabelMedium>
+                            {formatUnits(selectedLock.amount, 18).slice(0, 10)}{" "}
+                            BTC
+                          </LabelMedium>
                         </div>
-                      )}
-                  </div>
-                )}
-              </div>
-            </Card>
+                        <div>
+                          <LabelSmall color={theme.colors.contentSecondary}>
+                            Voting Power
+                          </LabelSmall>
+                          <LabelMedium>
+                            {formatUnits(selectedLock.votingPower, 18).slice(
+                              0,
+                              10,
+                            )}
+                          </LabelMedium>
+                        </div>
+                        <div>
+                          <LabelSmall color={theme.colors.contentSecondary}>
+                            Current Boost
+                          </LabelSmall>
+                          <LabelMedium>
+                            {boostMultiplier.toFixed(2)}x
+                          </LabelMedium>
+                        </div>
+                        <div>
+                          <LabelSmall color={theme.colors.contentSecondary}>
+                            Gauge
+                          </LabelSmall>
+                          {hasGauge && gaugeAddress ? (
+                            <a
+                              href={`${EXPLORER_URL}/address/${gaugeAddress}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={css({
+                                fontFamily: "monospace",
+                                fontSize: "14px",
+                                color: theme.colors.accent,
+                                textDecoration: "none",
+                                ":hover": {
+                                  textDecoration: "underline",
+                                },
+                              })}
+                            >
+                              {gaugeAddress.slice(0, 6)}...
+                              {gaugeAddress.slice(-4)}
+                            </a>
+                          ) : (
+                            <LabelMedium color={theme.colors.contentSecondary}>
+                              None
+                            </LabelMedium>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Current Epoch Incentives */}
+                      {hasGauge &&
+                        !isLoadingIncentives &&
+                        incentives.length > 0 && (
+                          <div className={css({ marginTop: "16px" })}>
+                            <LabelSmall
+                              color={theme.colors.contentSecondary}
+                              marginBottom="scale200"
+                            >
+                              Current Epoch Incentives
+                            </LabelSmall>
+                            <div
+                              className={css({
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "8px",
+                              })}
+                            >
+                              {incentives.map((incentive) => (
+                                <div
+                                  key={incentive.tokenAddress}
+                                  className={css({
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                  })}
+                                >
+                                  <LabelMedium>{incentive.symbol}</LabelMedium>
+                                  <LabelMedium>
+                                    {formatUnits(
+                                      incentive.amount,
+                                      incentive.decimals,
+                                    ).slice(0, 10)}
+                                  </LabelMedium>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                    </div>
+                  )}
+                </div>
+              </Card>
             </SpringIn>
 
             {selectedLock &&
               (!hasGauge && !isLoadingGauge ? (
                 <SpringIn delay={1} variant="card">
                   <Card title="Create Boost Gauge" withBorder overrides={{}}>
-                  <div
-                    className={css({
-                      padding: "16px 0",
-                    })}
-                  >
-                    <ParagraphMedium
-                      color={theme.colors.contentSecondary}
-                      marginBottom="scale500"
+                    <div
+                      className={css({
+                        padding: "16px 0",
+                      })}
                     >
-                      Create a boost gauge for this veBTC lock to start
-                      receiving veMEZO votes and boost your voting power.
-                    </ParagraphMedium>
-                    <Button
-                      kind="primary"
-                      onClick={handleCreateGauge}
-                      isLoading={isCreating || isConfirmingCreate}
-                    >
-                      Create Boost Gauge
-                    </Button>
-                    {createError && (
-                      <ParagraphSmall
-                        color={theme.colors.negative}
-                        marginTop="scale300"
+                      <ParagraphMedium
+                        color={theme.colors.contentSecondary}
+                        marginBottom="scale500"
                       >
-                        Error: {createError.message}
-                      </ParagraphSmall>
-                    )}
-                  </div>
-                </Card>
+                        Create a boost gauge for this veBTC lock to start
+                        receiving veMEZO votes and boost your voting power.
+                      </ParagraphMedium>
+                      <Button
+                        kind="primary"
+                        onClick={handleCreateGauge}
+                        isLoading={isCreating || isConfirmingCreate}
+                      >
+                        Create Boost Gauge
+                      </Button>
+                      {createError && (
+                        <ParagraphSmall
+                          color={theme.colors.negative}
+                          marginTop="scale300"
+                        >
+                          Error: {createError.message}
+                        </ParagraphSmall>
+                      )}
+                    </div>
+                  </Card>
                 </SpringIn>
               ) : (
-                <SpringIn delay={1} variant="card">
-                  <Card title="Add Incentives" withBorder overrides={{}}>
-                  <div
-                    className={css({
-                      padding: "16px 0",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "16px",
-                    })}
-                  >
-                    <ParagraphMedium color={theme.colors.contentSecondary}>
-                      Add token incentives to attract veMEZO holders to vote for
-                      your gauge.
-                    </ParagraphMedium>
+                <>
+                  {/* Gauge Profile Card */}
+                  <SpringIn delay={1} variant="card">
+                    <Card title="Gauge Profile" withBorder overrides={{}}>
+                      <div
+                        className={css({
+                          padding: "16px 0",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "16px",
+                        })}
+                      >
+                        <ParagraphMedium color={theme.colors.contentSecondary}>
+                          Customize your gauge&apos;s profile to help veMEZO
+                          voters identify your gauge.
+                        </ParagraphMedium>
 
-                    <TokenSelector
-                      label="Incentive Token"
-                      value={incentiveToken}
-                      onChange={setIncentiveToken}
-                      placeholder="Select a token"
-                    />
-                    {incentiveToken && isTokenAllowlisted === false && (
-                      <ParagraphSmall color={theme.colors.negative}>
-                        This token is not allowlisted for incentives. Only
-                        allowlisted tokens can be used as bribes.
-                      </ParagraphSmall>
-                    )}
-                    <div>
-                      <LabelSmall
-                        color={theme.colors.contentSecondary}
-                        marginBottom="scale100"
-                        as="label"
-                        htmlFor="incentive-amount"
+                        {isLoadingProfile ? (
+                          <Skeleton width="100%" height="200px" animation />
+                        ) : (
+                          <>
+                            {/* Profile Picture */}
+                            <div>
+                              <LabelSmall
+                                color={theme.colors.contentSecondary}
+                                marginBottom="scale200"
+                              >
+                                Profile Picture
+                              </LabelSmall>
+                              <div
+                                className={css({
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: "16px",
+                                })}
+                              >
+                                <div
+                                  className={css({
+                                    width: "80px",
+                                    height: "80px",
+                                    borderRadius: "50%",
+                                    backgroundColor:
+                                      theme.colors.backgroundSecondary,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    overflow: "hidden",
+                                    border: `2px solid ${theme.colors.borderOpaque}`,
+                                  })}
+                                >
+                                  {profilePicturePreview ? (
+                                    <img
+                                      src={profilePicturePreview}
+                                      alt="Gauge profile"
+                                      className={css({
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                      })}
+                                    />
+                                  ) : (
+                                    <LabelSmall
+                                      color={theme.colors.contentSecondary}
+                                    >
+                                      No image
+                                    </LabelSmall>
+                                  )}
+                                </div>
+                                <div>
+                                  <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    accept="image/*"
+                                    onChange={handleFileSelect}
+                                    className={css({ display: "none" })}
+                                  />
+                                  <Button
+                                    kind="secondary"
+                                    size="small"
+                                    onClick={() => fileInputRef.current?.click()}
+                                  >
+                                    {profilePicturePreview
+                                      ? "Change Picture"
+                                      : "Upload Picture"}
+                                  </Button>
+                                  <ParagraphSmall
+                                    color={theme.colors.contentSecondary}
+                                    marginTop="scale200"
+                                  >
+                                    Recommended: Square image, at least 200x200px
+                                  </ParagraphSmall>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                              <LabelSmall
+                                color={theme.colors.contentSecondary}
+                                marginBottom="scale100"
+                                as="label"
+                                htmlFor="gauge-description"
+                              >
+                                Description
+                              </LabelSmall>
+                              <Textarea
+                                id="gauge-description"
+                                value={profileDescription}
+                                onChange={(e) =>
+                                  setProfileDescription(e.target.value)
+                                }
+                                placeholder="Tell voters about your gauge. What makes it special? What are your goals?"
+                                overrides={{
+                                  Root: {
+                                    style: {
+                                      minHeight: "100px",
+                                    },
+                                  },
+                                }}
+                              />
+                            </div>
+
+                            {/* Save Button */}
+                            <Button
+                              kind="primary"
+                              onClick={handleSaveProfile}
+                              isLoading={isSavingProfile || isUploadingPicture}
+                              disabled={
+                                !profileDescription && !pendingPictureFile
+                              }
+                            >
+                              Save Profile
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </Card>
+                  </SpringIn>
+
+                  {/* Add Incentives Card */}
+                  <SpringIn delay={2} variant="card">
+                    <Card title="Add Incentives" withBorder overrides={{}}>
+                      <div
+                        className={css({
+                          padding: "16px 0",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "16px",
+                        })}
                       >
-                        Amount
-                        {incentiveToken && ` (${incentiveToken.symbol})`}
-                      </LabelSmall>
-                      <Input
-                        id="incentive-amount"
-                        value={incentiveAmount}
-                        onChange={(e) => setIncentiveAmount(e.target.value)}
-                        placeholder="0.0"
-                        type="number"
-                      />
-                    </div>
-                    {needsApproval ? (
-                      <Button
-                        kind="primary"
-                        onClick={handleApprove}
-                        isLoading={isApproving || isConfirmingApproval}
-                        disabled={
-                          !incentiveToken ||
-                          !incentiveAmount ||
-                          !boostVoterAddress ||
-                          isTokenAllowlisted === false
-                        }
-                      >
-                        Approve {incentiveToken?.symbol}
-                      </Button>
-                    ) : (
-                      <Button
-                        kind="primary"
-                        onClick={handleAddIncentives}
-                        isLoading={isAddingIncentives || isConfirmingIncentives}
-                        disabled={
-                          !incentiveToken ||
-                          !incentiveAmount ||
-                          parsedAmount === 0n ||
-                          isTokenAllowlisted === false
-                        }
-                      >
-                        Add Incentives
-                      </Button>
-                    )}
-                    {addIncentivesError && (
-                      <ParagraphSmall
-                        color={theme.colors.negative}
-                        marginTop="scale300"
-                      >
-                        Error: {addIncentivesError.message}
-                      </ParagraphSmall>
-                    )}
-                  </div>
-                </Card>
-                </SpringIn>
+                        <ParagraphMedium color={theme.colors.contentSecondary}>
+                          Add token incentives to attract veMEZO holders to vote
+                          for your gauge.
+                        </ParagraphMedium>
+
+                        <TokenSelector
+                          label="Incentive Token"
+                          value={incentiveToken}
+                          onChange={setIncentiveToken}
+                          placeholder="Select a token"
+                        />
+                        {incentiveToken && isTokenAllowlisted === false && (
+                          <ParagraphSmall color={theme.colors.negative}>
+                            This token is not allowlisted for incentives. Only
+                            allowlisted tokens can be used as bribes.
+                          </ParagraphSmall>
+                        )}
+                        <div>
+                          <LabelSmall
+                            color={theme.colors.contentSecondary}
+                            marginBottom="scale100"
+                            as="label"
+                            htmlFor="incentive-amount"
+                          >
+                            Amount
+                            {incentiveToken && ` (${incentiveToken.symbol})`}
+                          </LabelSmall>
+                          <Input
+                            id="incentive-amount"
+                            value={incentiveAmount}
+                            onChange={(e) => setIncentiveAmount(e.target.value)}
+                            placeholder="0.0"
+                            type="number"
+                          />
+                        </div>
+                        {needsApproval ? (
+                          <Button
+                            kind="primary"
+                            onClick={handleApprove}
+                            isLoading={isApproving || isConfirmingApproval}
+                            disabled={
+                              !incentiveToken ||
+                              !incentiveAmount ||
+                              !boostVoterAddress ||
+                              isTokenAllowlisted === false
+                            }
+                          >
+                            Approve {incentiveToken?.symbol}
+                          </Button>
+                        ) : (
+                          <Button
+                            kind="primary"
+                            onClick={handleAddIncentives}
+                            isLoading={
+                              isAddingIncentives || isConfirmingIncentives
+                            }
+                            disabled={
+                              !incentiveToken ||
+                              !incentiveAmount ||
+                              parsedAmount === 0n ||
+                              isTokenAllowlisted === false
+                            }
+                          >
+                            Add Incentives
+                          </Button>
+                        )}
+                        {addIncentivesError && (
+                          <ParagraphSmall
+                            color={theme.colors.negative}
+                            marginTop="scale300"
+                          >
+                            Error: {addIncentivesError.message}
+                          </ParagraphSmall>
+                        )}
+                      </div>
+                    </Card>
+                  </SpringIn>
+                </>
               ))}
           </>
         )}

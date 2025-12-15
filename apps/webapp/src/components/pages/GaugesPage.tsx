@@ -1,8 +1,8 @@
-import { AddressLink } from "@/components/AddressLink"
 import { Layout } from "@/components/Layout"
 import { SpringIn } from "@/components/SpringIn"
 import { useBoostGauges, useVoterTotals } from "@/hooks/useGauges"
 import type { BoostGauge } from "@/hooks/useGauges"
+import { useGaugeProfiles } from "@/hooks/useGaugeProfiles"
 import { useBribeAddress, useBribeIncentives } from "@/hooks/useVoting"
 import { useReadContracts } from "wagmi"
 import { getContractConfig } from "@/config/contracts"
@@ -16,12 +16,14 @@ import {
   HeadingMedium,
   LabelSmall,
   ParagraphMedium,
+  ParagraphSmall,
   Skeleton,
   TableBuilder,
   TableBuilderColumn,
   Tag,
   useStyletron,
 } from "@mezo-org/mezo-clay"
+import Link from "next/link"
 import type React from "react"
 import { useCallback, useMemo, useState } from "react"
 import { formatUnits } from "viem"
@@ -85,9 +87,15 @@ export default function GaugesPage() {
     veBTCTotalVotingPower,
   } = useVoterTotals()
 
+  // Fetch gauge profiles from Supabase
+  const gaugeAddresses = useMemo(
+    () => gauges.map((g) => g.address),
+    [gauges],
+  )
+  const { profiles: gaugeProfiles } = useGaugeProfiles(gaugeAddresses)
+
   // Load bribe addresses for all gauges for sorting
   const contracts = getContractConfig(CHAIN_ID.testnet)
-  const gaugeAddresses = gauges.map((g) => g.address)
   const { data: bribeAddressesData } = useReadContracts({
     contracts: gaugeAddresses.map((address) => ({
       ...contracts.boostVoter,
@@ -505,7 +513,7 @@ export default function GaugesPage() {
                   style: {
                     maxHeight: "600px",
                     overflow: "auto",
-                    minWidth: "700px",
+                    minWidth: "800px",
                   },
                 },
                 TableHeadCell: {
@@ -522,19 +530,102 @@ export default function GaugesPage() {
                 TableBodyCell: {
                   style: {
                     whiteSpace: "nowrap",
+                    verticalAlign: "middle",
                   },
                 },
               }}
             >
-              <TableBuilderColumn header="veBTC NFT">
-                {(gauge: BoostGauge) => (
-                  <AddressLink
-                    address={gauge.address}
-                    {...(gauge.veBTCTokenId > 0n && {
-                      label: `#${gauge.veBTCTokenId.toString()}`,
-                    })}
-                  />
-                )}
+              <TableBuilderColumn header="Gauge">
+                {(gauge: BoostGauge) => {
+                  const profile = gaugeProfiles.get(gauge.address.toLowerCase())
+                  return (
+                    <Link
+                      href={`/gauges/${gauge.address}`}
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        textDecoration: "none",
+                        color: "inherit",
+                        ":hover": {
+                          opacity: 0.8,
+                        },
+                      })}
+                    >
+                      {/* Profile Picture */}
+                      <div
+                        className={css({
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "50%",
+                          backgroundColor: theme.colors.backgroundSecondary,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          overflow: "hidden",
+                          flexShrink: 0,
+                          border: `1px solid ${theme.colors.borderOpaque}`,
+                        })}
+                      >
+                        {profile?.profile_picture_url ? (
+                          <img
+                            src={profile.profile_picture_url}
+                            alt={`Gauge #${gauge.veBTCTokenId.toString()}`}
+                            className={css({
+                              width: "100%",
+                              height: "100%",
+                              objectFit: "cover",
+                            })}
+                          />
+                        ) : (
+                          <LabelSmall
+                            color={theme.colors.contentSecondary}
+                            overrides={{
+                              Block: {
+                                style: { fontSize: "10px" },
+                              },
+                            }}
+                          >
+                            #{gauge.veBTCTokenId > 0n ? gauge.veBTCTokenId.toString() : "?"}
+                          </LabelSmall>
+                        )}
+                      </div>
+                      {/* Gauge Info */}
+                      <div
+                        className={css({
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "2px",
+                          minWidth: 0,
+                        })}
+                      >
+                        <LabelSmall color={theme.colors.accent}>
+                          {gauge.veBTCTokenId > 0n
+                            ? `veBTC #${gauge.veBTCTokenId.toString()}`
+                            : `${gauge.address.slice(0, 6)}...${gauge.address.slice(-4)}`}
+                        </LabelSmall>
+                        {profile?.description && (
+                          <ParagraphSmall
+                            color={theme.colors.contentSecondary}
+                            overrides={{
+                              Block: {
+                                style: {
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  whiteSpace: "nowrap",
+                                  maxWidth: "200px",
+                                  margin: 0,
+                                },
+                              },
+                            }}
+                          >
+                            {profile.description}
+                          </ParagraphSmall>
+                        )}
+                      </div>
+                    </Link>
+                  )
+                }}
               </TableBuilderColumn>
               <TableBuilderColumn
                 header={
