@@ -52,6 +52,7 @@ export default function IncentivesPage() {
   const [incentiveAmount, setIncentiveAmount] = useState("")
 
   // Gauge profile state
+  const [profileDisplayName, setProfileDisplayName] = useState("")
   const [profileDescription, setProfileDescription] = useState("")
   const [profilePicturePreview, setProfilePicturePreview] = useState<
     string | null
@@ -86,10 +87,12 @@ export default function IncentivesPage() {
   // Sync profile data when loaded
   useEffect(() => {
     if (gaugeProfile) {
+      setProfileDisplayName(gaugeProfile.display_name ?? "")
       setProfileDescription(gaugeProfile.description ?? "")
       setProfilePicturePreview(gaugeProfile.profile_picture_url)
       setPendingPictureFile(null)
     } else {
+      setProfileDisplayName("")
       setProfileDescription("")
       setProfilePicturePreview(null)
       setPendingPictureFile(null)
@@ -222,6 +225,7 @@ export default function IncentivesPage() {
       ownerAddress: walletAddress,
       profilePictureUrl: pictureUrl,
       description: profileDescription || null,
+      displayName: profileDisplayName || null,
     })
 
     if (result) {
@@ -571,6 +575,33 @@ export default function IncentivesPage() {
                               </div>
                             </div>
 
+                            {/* Display Name */}
+                            <div>
+                              <LabelSmall
+                                color={theme.colors.contentSecondary}
+                                marginBottom="scale100"
+                                as="label"
+                                htmlFor="gauge-display-name"
+                              >
+                                Display Name
+                              </LabelSmall>
+                              <Input
+                                id="gauge-display-name"
+                                value={profileDisplayName}
+                                onChange={(e) =>
+                                  setProfileDisplayName(e.target.value)
+                                }
+                                placeholder={`veBTC #${selectedLock?.tokenId?.toString() ?? ""}`}
+                              />
+                              <ParagraphSmall
+                                color={theme.colors.contentSecondary}
+                                marginTop="scale100"
+                              >
+                                Leave empty to use the default name (veBTC #
+                                {selectedLock?.tokenId?.toString()})
+                              </ParagraphSmall>
+                            </div>
+
                             {/* Description */}
                             <div>
                               <LabelSmall
@@ -604,7 +635,9 @@ export default function IncentivesPage() {
                               onClick={handleSaveProfile}
                               isLoading={isSavingProfile || isUploadingPicture}
                               disabled={
-                                !profileDescription && !pendingPictureFile
+                                !profileDisplayName &&
+                                !profileDescription &&
+                                !pendingPictureFile
                               }
                             >
                               Save Profile

@@ -3,6 +3,7 @@ import { Layout } from "@/components/Layout"
 import { SpringIn } from "@/components/SpringIn"
 import type { BoostGauge } from "@/hooks/useGauges"
 import { useBoostGauges } from "@/hooks/useGauges"
+import { useGaugeProfiles } from "@/hooks/useGaugeProfiles"
 import { useVeMEZOLocks } from "@/hooks/useLocks"
 import {
   useBribeAddress,
@@ -26,6 +27,7 @@ import {
   LabelMedium,
   LabelSmall,
   ParagraphMedium,
+  ParagraphSmall,
   Select,
   Skeleton,
   TableBuilder,
@@ -62,7 +64,10 @@ export default function BoostPage() {
 
   // Load bribe addresses for all gauges for sorting
   const contracts = getContractConfig(CHAIN_ID.testnet)
-  const gaugeAddresses = gauges.map((g) => g.address)
+  const gaugeAddresses = useMemo(() => gauges.map((g) => g.address), [gauges])
+
+  // Fetch gauge profiles from Supabase
+  const { profiles: gaugeProfiles } = useGaugeProfiles(gaugeAddresses)
   const { data: bribeAddressesData } = useReadContracts({
     contracts: gaugeAddresses.map((address) => ({
       ...contracts.boostVoter,
@@ -755,19 +760,104 @@ export default function BoostPage() {
                             TableBodyCell: {
                               style: {
                                 whiteSpace: "nowrap",
+                                verticalAlign: "middle",
                               },
                             },
                           }}
                         >
-                          <TableBuilderColumn header="veBTC NFT">
-                            {(gauge: GaugeWithAllocation) => (
-                              <AddressLink
-                                address={gauge.address}
-                                {...(gauge.veBTCTokenId > 0n && {
-                                  label: `#${gauge.veBTCTokenId.toString()}`,
-                                })}
-                              />
-                            )}
+                          <TableBuilderColumn header="Gauge">
+                            {(gauge: GaugeWithAllocation) => {
+                              const profile = gaugeProfiles.get(gauge.address.toLowerCase())
+                              return (
+                                <div
+                                  className={css({
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "12px",
+                                  })}
+                                >
+                                  {/* Profile Picture */}
+                                  <div
+                                    className={css({
+                                      width: "36px",
+                                      height: "36px",
+                                      borderRadius: "50%",
+                                      backgroundColor: theme.colors.backgroundSecondary,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      overflow: "hidden",
+                                      flexShrink: 0,
+                                      border: `1px solid ${theme.colors.borderOpaque}`,
+                                    })}
+                                  >
+                                    {profile?.profile_picture_url ? (
+                                      <img
+                                        src={profile.profile_picture_url}
+                                        alt={`Gauge #${gauge.veBTCTokenId.toString()}`}
+                                        className={css({
+                                          width: "100%",
+                                          height: "100%",
+                                          objectFit: "cover",
+                                        })}
+                                      />
+                                    ) : (
+                                      <LabelSmall
+                                        color={theme.colors.contentSecondary}
+                                        overrides={{
+                                          Block: {
+                                            style: { fontSize: "10px" },
+                                          },
+                                        }}
+                                      >
+                                        #{gauge.veBTCTokenId > 0n ? gauge.veBTCTokenId.toString() : "?"}
+                                      </LabelSmall>
+                                    )}
+                                  </div>
+                                  {/* Gauge Info */}
+                                  <div
+                                    className={css({
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      gap: "2px",
+                                      minWidth: 0,
+                                    })}
+                                  >
+                                    <LabelSmall
+                                      color={
+                                        profile?.display_name || profile?.description || profile?.profile_picture_url
+                                          ? theme.colors.positive
+                                          : theme.colors.negative
+                                      }
+                                    >
+                                      {profile?.display_name
+                                        ? profile.display_name
+                                        : gauge.veBTCTokenId > 0n
+                                          ? `veBTC #${gauge.veBTCTokenId.toString()}`
+                                          : `${gauge.address.slice(0, 6)}...${gauge.address.slice(-4)}`}
+                                    </LabelSmall>
+                                    {profile?.description && (
+                                      <ParagraphSmall
+                                        color={theme.colors.contentSecondary}
+                                        overrides={{
+                                          Block: {
+                                            style: {
+                                              overflow: "hidden",
+                                              textOverflow: "ellipsis",
+                                              whiteSpace: "nowrap",
+                                              maxWidth: "150px",
+                                              margin: 0,
+                                            },
+                                          },
+                                        }}
+                                      >
+                                        {profile.description}
+                                      </ParagraphSmall>
+                                    )}
+                                  </div>
+                                </div>
+                              )
+                            }}
                           </TableBuilderColumn>
                           <TableBuilderColumn
                             header={

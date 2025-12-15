@@ -228,8 +228,16 @@ export default function GaugeDetailPage() {
                         flexWrap: "wrap",
                       })}
                     >
-                      <HeadingLarge>
-                        veBTC #{veBTCTokenId?.toString() ?? "Unknown"}
+                      <HeadingLarge
+                        color={
+                          profile?.display_name || profile?.description || profile?.profile_picture_url
+                            ? theme.colors.positive
+                            : theme.colors.negative
+                        }
+                      >
+                        {profile?.display_name
+                          ? profile.display_name
+                          : `veBTC #${veBTCTokenId?.toString() ?? "Unknown"}`}
                       </HeadingLarge>
                       <Tag color={isAlive ? "green" : "red"} closeable={false}>
                         {isAlive ? "Active" : "Inactive"}

@@ -1,6 +1,7 @@
 import { Layout } from "@/components/Layout"
 import { SpringIn } from "@/components/SpringIn"
 import { useBoostGaugeForToken, useBoostInfo } from "@/hooks/useGauges"
+import { useGaugeProfile } from "@/hooks/useGaugeProfiles"
 import { useVeBTCLocks, useVeMEZOLocks } from "@/hooks/useLocks"
 import { useVoteState } from "@/hooks/useVoting"
 import {
@@ -10,10 +11,12 @@ import {
   LabelMedium,
   LabelSmall,
   ParagraphMedium,
+  ParagraphSmall,
   Skeleton,
   Tag,
   useStyletron,
 } from "@mezo-org/mezo-clay"
+import Link from "next/link"
 import { formatUnits } from "viem"
 import { useAccount } from "wagmi"
 
@@ -21,8 +24,9 @@ function VeBTCLockCard({
   lock,
 }: { lock: ReturnType<typeof useVeBTCLocks>["locks"][0] }) {
   const [css, theme] = useStyletron()
-  const { hasGauge } = useBoostGaugeForToken(lock.tokenId)
+  const { hasGauge, gaugeAddress } = useBoostGaugeForToken(lock.tokenId)
   const { boostMultiplier } = useBoostInfo(lock.tokenId)
+  const { profile } = useGaugeProfile(gaugeAddress)
 
   const unlockDate = new Date(Number(lock.end) * 1000)
   const isExpired = unlockDate < new Date()
@@ -30,6 +34,7 @@ function VeBTCLockCard({
   return (
     <Card withBorder overrides={{}}>
       <div className={css({ padding: "8px 0" })}>
+        {/* Header with Profile Picture, Name, and Status */}
         <div
           className={css({
             display: "flex",
@@ -38,8 +43,90 @@ function VeBTCLockCard({
             marginBottom: "16px",
           })}
         >
-          <div>
-            <LabelMedium>veBTC #{lock.tokenId.toString()}</LabelMedium>
+          <div
+            className={css({
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+            })}
+          >
+            {/* Profile Picture */}
+            <div
+              className={css({
+                width: "48px",
+                height: "48px",
+                borderRadius: "50%",
+                backgroundColor: theme.colors.backgroundSecondary,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                overflow: "hidden",
+                flexShrink: 0,
+                border: `1px solid ${theme.colors.borderOpaque}`,
+              })}
+            >
+              {profile?.profile_picture_url ? (
+                <img
+                  src={profile.profile_picture_url}
+                  alt={`veBTC #${lock.tokenId.toString()}`}
+                  className={css({
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  })}
+                />
+              ) : (
+                <LabelSmall
+                  color={theme.colors.contentSecondary}
+                  overrides={{
+                    Block: {
+                      style: { fontSize: "12px" },
+                    },
+                  }}
+                >
+                  #{lock.tokenId.toString()}
+                </LabelSmall>
+              )}
+            </div>
+            {/* Name and Description */}
+            <div
+              className={css({
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+                minWidth: 0,
+              })}
+            >
+              <LabelMedium
+                color={
+                  profile?.display_name || profile?.description || profile?.profile_picture_url
+                    ? theme.colors.positive
+                    : theme.colors.negative
+                }
+              >
+                {profile?.display_name
+                  ? profile.display_name
+                  : `veBTC #${lock.tokenId.toString()}`}
+              </LabelMedium>
+              {profile?.description && (
+                <ParagraphSmall
+                  color={theme.colors.contentSecondary}
+                  overrides={{
+                    Block: {
+                      style: {
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "180px",
+                        margin: 0,
+                      },
+                    },
+                  }}
+                >
+                  {profile.description}
+                </ParagraphSmall>
+              )}
+            </div>
           </div>
           <Tag
             color={lock.isPermanent ? "green" : isExpired ? "red" : "yellow"}
@@ -90,15 +177,28 @@ function VeBTCLockCard({
           </div>
           <div>
             <LabelSmall color={theme.colors.contentSecondary}>
-              Has Gauge
+              Gauge
             </LabelSmall>
-            <LabelMedium
-              color={
-                hasGauge ? theme.colors.positive : theme.colors.contentSecondary
-              }
-            >
-              {hasGauge ? "Yes" : "No"}
-            </LabelMedium>
+            {hasGauge && gaugeAddress ? (
+              <Link
+                href={`/gauges/${gaugeAddress}`}
+                className={css({
+                  textDecoration: "none",
+                  color: theme.colors.accent,
+                  ":hover": {
+                    textDecoration: "underline",
+                  },
+                })}
+              >
+                <LabelMedium color={theme.colors.accent}>
+                  View Gauge →
+                </LabelMedium>
+              </Link>
+            ) : (
+              <LabelMedium color={theme.colors.contentSecondary}>
+                No Gauge
+              </LabelMedium>
+            )}
           </div>
         </div>
 

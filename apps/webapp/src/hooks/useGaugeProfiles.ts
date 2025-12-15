@@ -92,6 +92,7 @@ type UpsertGaugeProfileParams = {
   ownerAddress: Address
   profilePictureUrl?: string | null
   description?: string | null
+  displayName?: string | null
 }
 
 export function useUpsertGaugeProfile() {
@@ -105,6 +106,7 @@ export function useUpsertGaugeProfile() {
       ownerAddress,
       profilePictureUrl,
       description,
+      displayName,
     }: UpsertGaugeProfileParams) => {
       setIsLoading(true)
       setError(null)
@@ -118,6 +120,7 @@ export function useUpsertGaugeProfile() {
             owner_address: ownerAddress.toLowerCase(),
             profile_picture_url: profilePictureUrl,
             description,
+            display_name: displayName,
           },
           {
             onConflict: "gauge_address",

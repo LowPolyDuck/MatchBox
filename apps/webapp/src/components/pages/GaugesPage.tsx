@@ -599,10 +599,18 @@ export default function GaugesPage() {
                           minWidth: 0,
                         })}
                       >
-                        <LabelSmall color={theme.colors.accent}>
-                          {gauge.veBTCTokenId > 0n
-                            ? `veBTC #${gauge.veBTCTokenId.toString()}`
-                            : `${gauge.address.slice(0, 6)}...${gauge.address.slice(-4)}`}
+                        <LabelSmall
+                          color={
+                            profile?.display_name || profile?.description || profile?.profile_picture_url
+                              ? theme.colors.positive
+                              : theme.colors.negative
+                          }
+                        >
+                          {profile?.display_name
+                            ? profile.display_name
+                            : gauge.veBTCTokenId > 0n
+                              ? `veBTC #${gauge.veBTCTokenId.toString()}`
+                              : `${gauge.address.slice(0, 6)}...${gauge.address.slice(-4)}`}
                         </LabelSmall>
                         {profile?.description && (
                           <ParagraphSmall

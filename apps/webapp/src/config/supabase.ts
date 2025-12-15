@@ -22,6 +22,7 @@ export type GaugeProfile = {
   owner_address: string
   profile_picture_url: string | null
   description: string | null
+  display_name: string | null
   created_at: string
   updated_at: string
 }
