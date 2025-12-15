@@ -270,6 +270,7 @@ export default function GaugeDetailPage() {
                 display: "grid",
                 gridTemplateColumns: "repeat(4, 1fr)",
                 gap: "16px",
+                alignItems: "stretch",
                 "@media (max-width: 1024px)": {
                   gridTemplateColumns: "repeat(2, 1fr)",
                 },
@@ -281,7 +282,14 @@ export default function GaugeDetailPage() {
             >
               <SpringIn delay={1} variant="card">
                 <Card withBorder overrides={{}}>
-                  <div className={css({ padding: "8px 0" })}>
+                  <div
+                    className={css({
+                      padding: "8px 0",
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100%",
+                    })}
+                  >
                     <LabelSmall color={theme.colors.contentSecondary}>
                       veBTC Weight
                     </LabelSmall>
@@ -296,7 +304,14 @@ export default function GaugeDetailPage() {
 
               <SpringIn delay={2} variant="card">
                 <Card withBorder overrides={{}}>
-                  <div className={css({ padding: "8px 0" })}>
+                  <div
+                    className={css({
+                      padding: "8px 0",
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100%",
+                    })}
+                  >
                     <LabelSmall color={theme.colors.contentSecondary}>
                       veMEZO Weight
                     </LabelSmall>
@@ -309,7 +324,14 @@ export default function GaugeDetailPage() {
 
               <SpringIn delay={3} variant="card">
                 <Card withBorder overrides={{}}>
-                  <div className={css({ padding: "8px 0" })}>
+                  <div
+                    className={css({
+                      padding: "8px 0",
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100%",
+                    })}
+                  >
                     <LabelSmall color={theme.colors.contentSecondary}>
                       Current Boost
                     </LabelSmall>
@@ -322,27 +344,34 @@ export default function GaugeDetailPage() {
 
               <SpringIn delay={4} variant="card">
                 <Card withBorder overrides={{}}>
-                  <div className={css({ padding: "8px 0" })}>
+                  <div
+                    className={css({
+                      padding: "8px 0",
+                      display: "flex",
+                      flexDirection: "column",
+                      height: "100%",
+                    })}
+                  >
                     <LabelSmall color={theme.colors.contentSecondary}>
-                      Beneficiary
+                      Manager
                     </LabelSmall>
                     {beneficiary ? (
-                      <a
-                        href={`${EXPLORER_URL}/address/${beneficiary}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={css({
-                          fontFamily: "monospace",
-                          fontSize: "14px",
-                          color: theme.colors.accent,
-                          textDecoration: "none",
-                          ":hover": {
-                            textDecoration: "underline",
-                          },
-                        })}
-                      >
-                        {beneficiary.slice(0, 6)}...{beneficiary.slice(-4)}
-                      </a>
+                      <HeadingMedium>
+                        <a
+                          href={`${EXPLORER_URL}/address/${beneficiary}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={css({
+                            color: theme.colors.accent,
+                            textDecoration: "none",
+                            ":hover": {
+                              textDecoration: "underline",
+                            },
+                          })}
+                        >
+                          {beneficiary.slice(0, 6)}...{beneficiary.slice(-4)}
+                        </a>
+                      </HeadingMedium>
                     ) : (
                       <HeadingMedium color={theme.colors.contentSecondary}>
                         -
