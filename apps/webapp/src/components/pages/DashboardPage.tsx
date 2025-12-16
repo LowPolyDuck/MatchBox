@@ -448,7 +448,7 @@ function VeMEZOLockCard({
                       })}
                     >
                       {formatAPY(upcomingAPY)}{" "}
-                      {apy === null || apy === 0 ? "projected" : "next"}
+                      {apy === null || apy === 0 ? "next" : "next"}
                     </span>
                   </>
                 )}
@@ -1013,7 +1013,7 @@ export default function DashboardPage() {
                                   >
                                     {formatAPY(upcomingAPY)}{" "}
                                     {totalAPY === null || totalAPY === 0
-                                      ? "projected APY"
+                                      ? "next"
                                       : "next"}
                                   </span>
                                 </>
