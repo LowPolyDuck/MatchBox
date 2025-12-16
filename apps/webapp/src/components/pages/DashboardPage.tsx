@@ -39,6 +39,33 @@ function formatTokenValue(amount: bigint, decimals: number): string {
   return value.toLocaleString(undefined, { maximumFractionDigits: 8, minimumSignificantDigits: 1 })
 }
 
+// Token icon mapping
+const TOKEN_ICONS: Record<string, string> = {
+  BTC: "/token icons/Bitcoin.svg",
+  WBTC: "/token icons/Bitcoin.svg",
+  tBTC: "/token icons/Bitcoin.svg",
+  MEZO: "/token icons/Mezo.svg",
+}
+
+function TokenIcon({ symbol, size = 16 }: { symbol: string; size?: number }) {
+  const iconPath = TOKEN_ICONS[symbol.toUpperCase()]
+  if (!iconPath) return null
+  
+  return (
+    <img
+      src={iconPath}
+      alt={symbol}
+      width={size}
+      height={size}
+      style={{
+        display: "inline-block",
+        verticalAlign: "middle",
+        flexShrink: 0,
+      }}
+    />
+  )
+}
+
 function VeBTCLockCard({
   lock,
 }: { lock: ReturnType<typeof useVeBTCLocks>["locks"][0] }) {
@@ -168,9 +195,18 @@ function VeBTCLockCard({
             <LabelSmall color={theme.colors.contentSecondary}>
               Locked Amount
             </LabelSmall>
-            <LabelMedium>
-              {formatTokenValue(lock.amount, 18)} BTC
-            </LabelMedium>
+            <div
+              className={css({
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              })}
+            >
+              <TokenIcon symbol="BTC" size={18} />
+              <LabelMedium>
+                {formatTokenValue(lock.amount, 18)} BTC
+              </LabelMedium>
+            </div>
           </div>
           <div>
             <LabelSmall color={theme.colors.contentSecondary}>
@@ -282,9 +318,18 @@ function VeMEZOLockCard({
             <LabelSmall color={theme.colors.contentSecondary}>
               Locked Amount
             </LabelSmall>
-            <LabelMedium>
-              {formatTokenValue(lock.amount, 18)} MEZO
-            </LabelMedium>
+            <div
+              className={css({
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              })}
+            >
+              <TokenIcon symbol="MEZO" size={18} />
+              <LabelMedium>
+                {formatTokenValue(lock.amount, 18)} MEZO
+              </LabelMedium>
+            </div>
           </div>
           <div>
             <LabelSmall color={theme.colors.contentSecondary}>
@@ -413,7 +458,7 @@ function ClaimableRewardRow({
             width: "36px",
             height: "36px",
             borderRadius: "10px",
-            background: `linear-gradient(135deg, ${theme.colors.backgroundTertiary} 0%, ${theme.colors.backgroundSecondary} 100%)`,
+            background: theme.colors.backgroundTertiary,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -446,10 +491,11 @@ function ClaimableRewardRow({
             key={reward.symbol}
             className={css({
               display: "flex",
-              alignItems: "baseline",
+              alignItems: "center",
               gap: "6px",
             })}
           >
+            <TokenIcon symbol={reward.symbol} size={20} />
             <LabelLarge
               overrides={{
                 Block: {
@@ -620,9 +666,19 @@ export default function DashboardPage() {
               <SpringIn delay={0} variant="card">
                 <Card withBorder overrides={{}}>
                   <div className={css({ padding: "8px 0" })}>
-                    <LabelSmall color={theme.colors.contentSecondary}>
-                      Your veBTC Locks
-                    </LabelSmall>
+                    <div
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        marginBottom: "4px",
+                      })}
+                    >
+                      <TokenIcon symbol="BTC" size={14} />
+                      <LabelSmall color={theme.colors.contentSecondary}>
+                        Your veBTC Locks
+                      </LabelSmall>
+                    </div>
                     <HeadingMedium>{veBTCLocks.length}</HeadingMedium>
                   </div>
                 </Card>
@@ -631,9 +687,19 @@ export default function DashboardPage() {
               <SpringIn delay={1} variant="card">
                 <Card withBorder overrides={{}}>
                   <div className={css({ padding: "8px 0" })}>
-                    <LabelSmall color={theme.colors.contentSecondary}>
-                      Your veBTC Power
-                    </LabelSmall>
+                    <div
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        marginBottom: "4px",
+                      })}
+                    >
+                      <TokenIcon symbol="BTC" size={14} />
+                      <LabelSmall color={theme.colors.contentSecondary}>
+                        Your veBTC Power
+                      </LabelSmall>
+                    </div>
                     <HeadingMedium>
                       {formatTokenValue(totalVeBTCVotingPower, 18)}
                     </HeadingMedium>
@@ -644,9 +710,19 @@ export default function DashboardPage() {
               <SpringIn delay={2} variant="card">
                 <Card withBorder overrides={{}}>
                   <div className={css({ padding: "8px 0" })}>
-                    <LabelSmall color={theme.colors.contentSecondary}>
-                      Your veMEZO Locks
-                    </LabelSmall>
+                    <div
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        marginBottom: "4px",
+                      })}
+                    >
+                      <TokenIcon symbol="MEZO" size={14} />
+                      <LabelSmall color={theme.colors.contentSecondary}>
+                        Your veMEZO Locks
+                      </LabelSmall>
+                    </div>
                     <HeadingMedium>{veMEZOLocks.length}</HeadingMedium>
                   </div>
                 </Card>
@@ -655,9 +731,19 @@ export default function DashboardPage() {
               <SpringIn delay={3} variant="card">
                 <Card withBorder overrides={{}}>
                   <div className={css({ padding: "8px 0" })}>
-                    <LabelSmall color={theme.colors.contentSecondary}>
-                      Your veMEZO Power
-                    </LabelSmall>
+                    <div
+                      className={css({
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        marginBottom: "4px",
+                      })}
+                    >
+                      <TokenIcon symbol="MEZO" size={14} />
+                      <LabelSmall color={theme.colors.contentSecondary}>
+                        Your veMEZO Power
+                      </LabelSmall>
+                    </div>
                     <HeadingMedium>
                       {formatTokenValue(totalVeMEZOVotingPower, 18)}
                     </HeadingMedium>
@@ -681,7 +767,7 @@ export default function DashboardPage() {
                   <div
                     className={css({
                       padding: "24px 28px",
-                      background: `linear-gradient(135deg, ${theme.colors.backgroundSecondary} 0%, ${theme.colors.backgroundPrimary} 100%)`,
+                      background: theme.colors.backgroundSecondary,
                       borderBottom: `1px solid ${theme.colors.borderOpaque}`,
                     })}
                   >
@@ -726,19 +812,16 @@ export default function DashboardPage() {
                                 key={tokenAddr}
                                 className={css({
                                   display: "flex",
-                                  alignItems: "baseline",
-                                  gap: "8px",
+                                  alignItems: "center",
+                                  gap: "10px",
                                 })}
                               >
+                                <TokenIcon symbol={info.symbol} size={28} />
                                 <HeadingLarge
                                   overrides={{
                                     Block: {
                                       style: {
                                         fontVariantNumeric: "tabular-nums",
-                                        background: `linear-gradient(135deg, ${theme.colors.contentPrimary} 0%, ${theme.colors.positive} 100%)`,
-                                        WebkitBackgroundClip: "text",
-                                        WebkitTextFillColor: "transparent",
-                                        backgroundClip: "text",
                                       },
                                     },
                                   }}
