@@ -110,7 +110,7 @@ function VeBTCLockCard({
   const isExpired = unlockDate < new Date()
 
   return (
-    <Card withBorder overrides={{}}>
+    <Card withBorder overrides={{ Root: { style: { height: "100%" } } }}>
       <div className={css({ padding: "8px 0" })}>
         {/* Header with Profile Picture, Name, and Status */}
         <div
@@ -373,7 +373,7 @@ function VeMEZOLockCard({
   const isExpired = unlockDate < new Date()
 
   return (
-    <Card withBorder overrides={{}}>
+    <Card withBorder overrides={{ Root: { style: { height: "100%" } } }}>
       <div className={css({ padding: "8px 0" })}>
         <div
           className={css({
