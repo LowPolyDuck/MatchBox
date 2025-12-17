@@ -269,7 +269,7 @@ function VeMEZOLockCard({
 
   return (
     <Card withBorder overrides={{ Root: { style: { height: "100%" } } }}>
-      <div className="py-2">
+      <div className="flex h-full flex-col py-2">
         <div className="mb-4 flex items-start justify-between">
           <div>
             <span className="text-sm font-medium text-[var(--content-primary)]">
@@ -307,7 +307,7 @@ function VeMEZOLockCard({
           </Tag>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid flex-1 grid-cols-2 gap-4">
           <div>
             <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
               Locked Amount
@@ -544,6 +544,21 @@ function ClaimableRewardRow({
                   maximumFractionDigits: 2,
                 })}
               </span>
+              <Button
+                size="small"
+                kind="secondary"
+                disabled
+                overrides={{
+                  Root: {
+                    style: {
+                      minWidth: "100px",
+                      opacity: 0.5,
+                    },
+                  },
+                }}
+              >
+                Pending
+              </Button>
             </div>
           </div>
         </div>
