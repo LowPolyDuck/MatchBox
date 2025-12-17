@@ -1,7 +1,7 @@
-import { CHAIN_ID } from "@repo/shared/contracts"
+import { CHAIN_ID, CONTRACTS } from "@repo/shared/contracts"
 import { useEffect, useState } from "react"
 import type { Address } from "viem"
-import { erc20Abi } from "viem"
+import { erc20Abi, getAddress } from "viem"
 import { useReadContracts } from "wagmi"
 
 export type Token = {
@@ -21,8 +21,28 @@ type TokenList = {
 const DEFAULT_TOKEN_LIST_URL =
   "https://tokens.coingecko.com/uniswap/all.json" as const
 
+// Default tokens that are always available for selection on Mezo
+const DEFAULT_TOKENS: Token[] = [
+  {
+    chainId: CHAIN_ID.testnet,
+    address: CONTRACTS.testnet.mezoToken,
+    name: "Mezo",
+    symbol: "MEZO",
+    decimals: 18,
+    logoURI: "/token icons/Mezo.svg",
+  },
+  {
+    chainId: CHAIN_ID.testnet,
+    address: getAddress("0x7b7C000000000000000000000000000000000000"),
+    name: "Bitcoin",
+    symbol: "BTC",
+    decimals: 18,
+    logoURI: "/token icons/Bitcoin.svg",
+  },
+]
+
 export function useTokenList(tokenListUrl?: string) {
-  const [tokens, setTokens] = useState<Token[]>([])
+  const [tokens, setTokens] = useState<Token[]>(DEFAULT_TOKENS)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
@@ -39,11 +59,19 @@ export function useTokenList(tokenListUrl?: string) {
         const chainTokens = data.tokens.filter(
           (token) => token.chainId === CHAIN_ID.testnet,
         )
-        setTokens(chainTokens)
+        // Combine default tokens with fetched tokens, avoiding duplicates
+        const defaultAddresses = new Set(
+          DEFAULT_TOKENS.map((t) => t.address.toLowerCase()),
+        )
+        const filteredChainTokens = chainTokens.filter(
+          (token) => !defaultAddresses.has(token.address.toLowerCase()),
+        )
+        setTokens([...DEFAULT_TOKENS, ...filteredChainTokens])
         setError(null)
       } catch (err) {
         setError(err instanceof Error ? err : new Error("Unknown error"))
-        setTokens([])
+        // Keep default tokens even on error
+        setTokens(DEFAULT_TOKENS)
       } finally {
         setIsLoading(false)
       }

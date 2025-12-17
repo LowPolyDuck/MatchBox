@@ -1,4 +1,5 @@
 import { type Token, useCustomToken, useTokenList } from "@/hooks/useTokenList"
+import { TokenIcon } from "@/components/TokenIcon"
 import { Input, Select } from "@mezo-org/mezo-clay"
 import { useEffect, useRef, useState } from "react"
 import { type Address, isAddress } from "viem"
@@ -11,6 +12,19 @@ interface TokenSelectorProps {
 }
 
 const CUSTOM_TOKEN_ID = "__custom__"
+
+function TokenOptionLabel({
+  token,
+}: { token: Token }): JSX.Element {
+  return (
+    <div className="flex items-center gap-2">
+      <TokenIcon symbol={token.symbol} size={20} />
+      <span>
+        {token.symbol} - {token.name}
+      </span>
+    </div>
+  )
+}
 
 export function TokenSelector({
   value,
@@ -39,7 +53,7 @@ export function TokenSelector({
   const options = [
     ...listTokens.map((token) => ({
       id: token.address,
-      label: `${token.symbol} - ${token.name}`,
+      label: <TokenOptionLabel token={token} />,
     })),
     { id: CUSTOM_TOKEN_ID, label: "Custom token..." },
   ]
