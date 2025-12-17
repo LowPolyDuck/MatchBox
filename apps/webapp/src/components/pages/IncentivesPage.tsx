@@ -1,6 +1,7 @@
 import { Layout } from "@/components/Layout"
 import { SpringIn } from "@/components/SpringIn"
 import { TokenSelector } from "@/components/TokenSelector"
+import { TokenIcon } from "@/components/TokenIcon"
 import {
   useGaugeProfile,
   useUploadProfilePicture,
@@ -8,6 +9,7 @@ import {
 } from "@/hooks/useGaugeProfiles"
 import { useBoostGaugeForToken, useBoostInfo } from "@/hooks/useGauges"
 import { useVeBTCLocks } from "@/hooks/useLocks"
+import { useBtcPrice } from "@/hooks/useBtcPrice"
 import type { Token } from "@/hooks/useTokenList"
 import {
   useAddIncentives,
@@ -18,6 +20,7 @@ import {
   useCreateBoostGauge,
   useIsAllowlistedToken,
   useTokenAllowance,
+  type BribeIncentive,
 } from "@/hooks/useVoting"
 import {
   Button,
@@ -29,12 +32,42 @@ import {
   Skeleton,
   Textarea,
 } from "@mezo-org/mezo-clay"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { formatUnits, parseUnits } from "viem"
 import { useAccount } from "wagmi"
 
 const EXPLORER_URL =
   process.env.NEXT_PUBLIC_EXPLORER_URL || "https://explorer.test.mezo.org"
+
+const MEZO_PRICE = 0.22
+const MEZO_TOKEN_ADDRESS =
+  "0x7b7c000000000000000000000000000000000001".toLowerCase()
+
+type IncentiveWithUSD = BribeIncentive & { usdValue: number | null }
+
+function formatUsdValue(value: number | null): string {
+  if (!value || Number.isNaN(value)) return "~$0.00"
+  return `~$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  })}`
+}
+
+function getIncentiveUsdValue(
+  incentive: BribeIncentive,
+  btcPrice: number | null,
+): number | null {
+  const amount = Number.parseFloat(
+    formatUnits(incentive.amount, incentive.decimals),
+  )
+  if (!Number.isFinite(amount)) return null
+
+  const tokenKey = incentive.tokenAddress.toLowerCase()
+  const price = tokenKey === MEZO_TOKEN_ADDRESS ? MEZO_PRICE : btcPrice
+  if (!price) return null
+
+  return amount * price
+}
 
 export default function IncentivesPage(): JSX.Element {
   const { isConnected, address: walletAddress } = useAccount()
@@ -116,6 +149,15 @@ export default function IncentivesPage(): JSX.Element {
     isLoading: isLoadingIncentives,
     refetch: refetchIncentives,
   } = useBribeIncentives(bribeAddress)
+  const { price: btcPrice } = useBtcPrice()
+  const incentivesWithUSD: IncentiveWithUSD[] = useMemo(
+    () =>
+      incentives.map((incentive) => ({
+        ...incentive,
+        usdValue: getIncentiveUsdValue(incentive, btcPrice),
+      })),
+    [btcPrice, incentives],
+  )
 
   // Get boostVoter address for approval (addBribes transfers tokens via boostVoter)
   const boostVoterAddress = useBoostVoterAddress()
@@ -357,19 +399,28 @@ export default function IncentivesPage(): JSX.Element {
                               Current Epoch Incentives
                             </p>
                             <div className="flex flex-col gap-2">
-                              {incentives.map((incentive) => (
+                              {incentivesWithUSD.map((incentive) => (
                                 <div
                                   key={incentive.tokenAddress}
-                                  className="flex items-center justify-between"
+                                  className="flex items-center justify-between gap-3"
                                 >
-                                  <span className="text-sm font-medium text-[var(--content-primary)]">
-                                    {incentive.symbol}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <TokenIcon symbol={incentive.symbol} size={20} />
+                                    <div className="flex flex-col">
+                                      <span className="text-sm font-medium text-[var(--content-primary)]">
+                                        {incentive.symbol}
+                                      </span>
+                                      <span className="text-2xs text-[var(--content-secondary)]">
+                                        {formatUsdValue(incentive.usdValue)}
+                                      </span>
+                                    </div>
+                                  </div>
                                   <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
                                     {formatUnits(
                                       incentive.amount,
                                       incentive.decimals,
-                                    ).slice(0, 10)}
+                                    ).slice(0, 12)}{" "}
+                                    {incentive.symbol}
                                   </span>
                                 </div>
                               ))}

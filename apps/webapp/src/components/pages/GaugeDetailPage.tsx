@@ -1,11 +1,17 @@
 import { AddressLink } from "@/components/AddressLink"
 import { Layout } from "@/components/Layout"
+import { TokenIcon } from "@/components/TokenIcon"
 import { SpringIn } from "@/components/SpringIn"
 import { getContractConfig } from "@/config/contracts"
 import { formatAPY, useGaugeAPY } from "@/hooks/useAPY"
+import { useBtcPrice } from "@/hooks/useBtcPrice"
 import { useGaugeProfile } from "@/hooks/useGaugeProfiles"
 import { useBoostInfo } from "@/hooks/useGauges"
-import { useBribeAddress, useBribeIncentives } from "@/hooks/useVoting"
+import {
+  useBribeAddress,
+  useBribeIncentives,
+  type BribeIncentive,
+} from "@/hooks/useVoting"
 import {
   formatFixedPoint,
   formatMultiplier,
@@ -16,8 +22,38 @@ import { CHAIN_ID, NON_STAKING_GAUGE_ABI } from "@repo/shared/contracts"
 import Link from "next/link"
 import { useRouter } from "next/router"
 import { useMemo } from "react"
-import type { Address } from "viem"
+import { formatUnits, type Address } from "viem"
 import { useReadContract, useReadContracts } from "wagmi"
+
+const MEZO_PRICE = 0.22
+const MEZO_TOKEN_ADDRESS =
+  "0x7b7c000000000000000000000000000000000001".toLowerCase()
+
+type IncentiveWithUSD = BribeIncentive & { usdValue: number | null }
+
+function formatUsdValue(value: number | null): string {
+  if (!value || Number.isNaN(value)) return "~$0.00"
+  return `~$${value.toLocaleString("en-US", {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  })}`
+}
+
+function getIncentiveUsdValue(
+  incentive: BribeIncentive,
+  btcPrice: number | null,
+): number | null {
+  const amount = Number.parseFloat(
+    formatUnits(incentive.amount, incentive.decimals),
+  )
+  if (!Number.isFinite(amount)) return null
+
+  const tokenKey = incentive.tokenAddress.toLowerCase()
+  const price = tokenKey === MEZO_TOKEN_ADDRESS ? MEZO_PRICE : btcPrice
+  if (!price) return null
+
+  return amount * price
+}
 
 const EXPLORER_URL =
   process.env.NEXT_PUBLIC_EXPLORER_URL || "https://explorer.test.mezo.org"
@@ -135,6 +171,16 @@ export default function GaugeDetailPage(): JSX.Element {
   const { bribeAddress, hasBribe } = useBribeAddress(gaugeAddress)
   const { incentives, isLoading: isLoadingIncentives } =
     useBribeIncentives(bribeAddress)
+  const { price: btcPrice } = useBtcPrice()
+
+  const incentivesWithUSD: IncentiveWithUSD[] = useMemo(
+    () =>
+      incentives.map((incentive) => ({
+        ...incentive,
+        usdValue: getIncentiveUsdValue(incentive, btcPrice),
+      })),
+    [btcPrice, incentives],
+  )
 
   // Calculate APY for this gauge
   const {
@@ -365,19 +411,28 @@ export default function GaugeDetailPage(): JSX.Element {
                     </p>
                   ) : (
                     <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-4">
-                      {incentives.map((incentive) => (
+                      {incentivesWithUSD.map((incentive) => (
                         <div
                           key={incentive.tokenAddress}
                           className="rounded-lg bg-[var(--surface-secondary)] p-4"
                         >
-                          <p className="mb-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                            {incentive.symbol}
-                          </p>
+                          <div className="mb-2 flex items-center gap-2">
+                            <TokenIcon symbol={incentive.symbol} size={22} />
+                            <div className="flex flex-col">
+                              <span className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                {incentive.symbol}
+                              </span>
+                              <span className="text-2xs text-[var(--content-secondary)]">
+                                {formatUsdValue(incentive.usdValue)}
+                              </span>
+                            </div>
+                          </div>
                           <p className="font-mono text-base font-medium tabular-nums text-[var(--content-primary)]">
                             {formatFixedPoint(
                               incentive.amount,
                               BigInt(incentive.decimals),
-                            )}
+                            )}{" "}
+                            {incentive.symbol}
                           </p>
                         </div>
                       ))}
