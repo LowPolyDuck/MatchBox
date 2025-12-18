@@ -197,8 +197,14 @@ export function useGaugeAPY(
 
   // Calculate APY
   const apy = useMemo(() => {
-    if (!totalWeight || totalWeight === 0n || totalIncentivesUSD === 0) {
+    // No incentives = no APY
+    if (totalIncentivesUSD === 0) {
       return null
+    }
+
+    // Has incentives but no votes = infinite APY (first voter gets all rewards)
+    if (!totalWeight || totalWeight === 0n) {
+      return Number.POSITIVE_INFINITY
     }
 
     // Convert veMEZO weight to a number (18 decimals)
@@ -207,7 +213,7 @@ export function useGaugeAPY(
     // Value of veMEZO votes in USD
     const totalVeMEZOValueUSD = totalVeMEZOAmount * MEZO_PRICE
 
-    if (totalVeMEZOValueUSD === 0) return null
+    if (totalVeMEZOValueUSD === 0) return Number.POSITIVE_INFINITY
 
     // APY = (weekly rewards / total position value) * 52 weeks * 100%
     const weeklyReturn = totalIncentivesUSD / totalVeMEZOValueUSD
@@ -226,6 +232,7 @@ export function useGaugeAPY(
     totalIncentivesUSD,
     totalVeMEZOWeight: totalWeight ?? 0n,
     isLoading,
+    incentivesByToken: [], // Single gauge doesn't track by token for now
   }
 }
 
@@ -337,9 +344,17 @@ export function useGaugesAPY(
       },
     })
 
+  // Extract valid token addresses from results
+  const resolvedTokenAddresses = useMemo(() => {
+    if (!rewardTokensData) return []
+    return rewardTokensData
+      .map((r) => r.result as Address | undefined)
+      .filter((addr): addr is Address => !!addr && addr !== "0x0000000000000000000000000000000000000000")
+  }, [rewardTokensData])
+
   const currentEpochStart = getEpochStart(Math.floor(Date.now() / 1000))
 
-  // Get token rewards per epoch and decimals
+  // Get token rewards per epoch and decimals - only run when we have resolved token addresses
   const { data: tokenRewardsData, isLoading: isLoadingRewards } =
     useReadContracts({
       contracts: rewardTokenQueries.flatMap(({ bribeAddress }, i) => {
@@ -390,7 +405,8 @@ export function useGaugesAPY(
         ]
       }),
       query: {
-        enabled: rewardTokenQueries.length > 0 && !!rewardTokensData,
+        // Only run when we have actual token addresses resolved
+        enabled: rewardTokenQueries.length > 0 && resolvedTokenAddresses.length > 0,
       },
     })
 
@@ -437,12 +453,12 @@ export function useGaugesAPY(
         
         // Track by token
         const existingTokens = gaugeTokenIncentives.get(gaugeKey) ?? []
-        const existingTokenIndex = existingTokens.findIndex(
+        const existingToken = existingTokens.find(
           (t) => t.tokenAddress === tokenKey
         )
-        if (existingTokenIndex >= 0) {
-          existingTokens[existingTokenIndex].amount += amount
-          existingTokens[existingTokenIndex].usdValue += usdValue
+        if (existingToken) {
+          existingToken.amount += amount
+          existingToken.usdValue += usdValue
         } else {
           existingTokens.push({
             tokenAddress: tokenKey,
@@ -464,14 +480,23 @@ export function useGaugesAPY(
       const incentivesByToken = gaugeTokenIncentives.get(gaugeKey) ?? []
 
       let apy: number | null = null
-      if (totalWeight && totalWeight > 0n && totalIncentivesUSD > 0) {
-        const totalVeMEZOAmount = Number(totalWeight) / 1e18
-        const totalVeMEZOValueUSD = totalVeMEZOAmount * MEZO_PRICE
+      
+      // No incentives = no APY
+      if (totalIncentivesUSD > 0) {
+        // Has incentives but no votes = infinite APY (first voter gets all rewards)
+        if (!totalWeight || totalWeight === 0n) {
+          apy = Number.POSITIVE_INFINITY
+        } else {
+          const totalVeMEZOAmount = Number(totalWeight) / 1e18
+          const totalVeMEZOValueUSD = totalVeMEZOAmount * MEZO_PRICE
 
-        if (totalVeMEZOValueUSD > 0) {
-          const weeklyReturn = totalIncentivesUSD / totalVeMEZOValueUSD
-          const annualReturn = weeklyReturn * EPOCHS_PER_YEAR
-          apy = annualReturn * 100
+          if (totalVeMEZOValueUSD > 0) {
+            const weeklyReturn = totalIncentivesUSD / totalVeMEZOValueUSD
+            const annualReturn = weeklyReturn * EPOCHS_PER_YEAR
+            apy = annualReturn * 100
+          } else {
+            apy = Number.POSITIVE_INFINITY
+          }
         }
       }
 
@@ -502,6 +527,7 @@ export function useGaugesAPY(
  */
 export function formatAPY(apy: number | null): string {
   if (apy === null) return "—"
+  if (!Number.isFinite(apy)) return "∞"
   if (apy === 0) return "0%"
   if (apy < 0.01) return "<0.01%"
   if (apy >= 10000) return `${(apy / 1000).toFixed(1)}k%`
