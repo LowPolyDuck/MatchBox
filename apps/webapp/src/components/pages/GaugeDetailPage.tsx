@@ -290,11 +290,7 @@ export default function GaugeDetailPage(): JSX.Element {
   )
 
   // Calculate APY for this gauge
-  const {
-    apy,
-    totalIncentivesUSD: apyIncentives,
-    isLoading: isLoadingAPY,
-  } = useGaugeAPY(gaugeAddress, totalWeight)
+  const { apy, isLoading: isLoadingAPY } = useGaugeAPY(gaugeAddress, totalWeight)
 
   // Check if profile has meaningful content
   const hasProfileContent =
