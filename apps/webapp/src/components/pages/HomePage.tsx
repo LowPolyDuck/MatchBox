@@ -154,7 +154,7 @@ export default function HomePage(): JSX.Element {
               description="Vote on veBTC gauges to boost their voting power and earn incentives in return."
               buttonText="Vote to Boost"
               href="/boost"
-              accentColor="#22C55E"
+              accentColor="#EF4444"
             />
           </SpringIn>
 
@@ -177,7 +177,7 @@ export default function HomePage(): JSX.Element {
               buttonText="View Dashboard"
               href="/dashboard"
               variant="secondary"
-              accentColor="#06B6D4"
+              accentColor="#22C55E"
             />
           </SpringIn>
         </div>
