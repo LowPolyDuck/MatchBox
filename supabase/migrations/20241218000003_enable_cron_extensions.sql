@@ -1,0 +1,69 @@
+-- Migration: Enable extensions required for scheduled edge function calls
+-- Note: pg_cron requires superuser and may already be enabled on Supabase Pro plans
+
+-- Enable pg_net extension for HTTP requests from PostgreSQL
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+-- ============================================================================
+-- CRON JOB SETUP OPTIONS
+-- ============================================================================
+-- 
+-- Choose ONE of the following options to schedule the edge function:
+--
+-- ============================================================================
+-- OPTION 1: Use Supabase Cron in Dashboard (EASIEST - Recommended)
+-- ============================================================================
+-- 1. Go to Supabase Dashboard > Project Settings > Edge Functions
+-- 2. Find "record-gauge-history" function
+-- 3. Click "Schedule" and set to: 0 0 * * * (daily at midnight UTC)
+-- 
+-- This automatically handles authentication.
+--
+-- ============================================================================
+-- OPTION 2: Use pg_cron with pg_net (Manual SQL)
+-- ============================================================================
+-- First, store your service role key in Vault (Dashboard > Settings > Vault):
+-- 
+-- Then schedule the job:
+--
+-- SELECT cron.schedule(
+--   'record-gauge-history-daily',
+--   '0 0 * * *',
+--   $$
+--   SELECT net.http_post(
+--     url := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/record-gauge-history',
+--     headers := jsonb_build_object(
+--       'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key'),
+--       'Content-Type', 'application/json'
+--     ),
+--     body := '{}'::jsonb
+--   );
+--   $$
+-- );
+--
+-- ============================================================================
+-- OPTION 3: Use Database Webhook (Alternative)
+-- ============================================================================
+-- Create a simple table to trigger the function, then use a trigger:
+--
+-- CREATE TABLE IF NOT EXISTS cron_triggers (
+--   id SERIAL PRIMARY KEY,
+--   triggered_at TIMESTAMPTZ DEFAULT NOW()
+-- );
+--
+-- Then use pg_cron to insert into this table, and set up a Database Webhook 
+-- in the Dashboard to call the edge function on INSERT.
+--
+-- ============================================================================
+-- MANAGEMENT COMMANDS
+-- ============================================================================
+--
+-- To check scheduled jobs:
+-- SELECT * FROM cron.job;
+--
+-- To check job run history:
+-- SELECT * FROM cron.job_run_details ORDER BY start_time DESC LIMIT 10;
+--
+-- To remove a scheduled job:
+-- SELECT cron.unschedule('record-gauge-history-daily');
+
