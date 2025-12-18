@@ -135,13 +135,12 @@ export default function HomePage(): JSX.Element {
             <div className="mb-4 inline-flex items-center gap-2 rounded-lg bg-[var(--surface-secondary)] px-4 py-2">
               <TerminalIcon />
               <span className="font-mono text-sm text-[var(--content-secondary)]">
-                veBTC + veMEZO voting protocol
+                veBTC + veMEZO matching protocol
               </span>
             </div>
 
             <p className="mx-auto max-w-lg text-base leading-relaxed text-[var(--content-secondary)] md:text-lg">
-              Boost your veBTC voting power with veMEZO or attract veMEZO
-              capital to your gauge with incentives.
+              Earn with bribes with your veMEZO, or pay to get boosted !
             </p>
           </section>
         </SpringIn>
