@@ -966,7 +966,7 @@ export default function DashboardPage(): JSX.Element {
                         {hasClaimableRewards && totalClaimableUSD > 0 && (
                           <div className="mb-5">
                             <span className="font-mono text-4xl font-bold tabular-nums text-[var(--content-primary)]">
-                              ${totalClaimableUSD.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                              ${totalClaimableUSD.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
                         )}
