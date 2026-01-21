@@ -486,3 +486,38 @@
 [data-baseweb="input"]:focus-within {
   border-color: var(--border-focus) !important;
 }
+
+/* ============================================
+   HEADER TICKER ANIMATIONS
+   Vertical sliding animation for cycling metrics
+   ============================================ */
+
+@keyframes ticker-slide-up-out {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes ticker-slide-up-in {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.ticker-slide-out {
+  animation: ticker-slide-up-out 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ticker-slide-in {
+  animation: ticker-slide-up-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

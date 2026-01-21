@@ -5,7 +5,7 @@ import { useRouter } from "next/router"
 import { useEffect, useState } from "react"
 import { useAccount, useConnect, useDisconnect } from "wagmi"
 import { injected } from "wagmi/connectors"
-import { TokenPrices } from "./TokenPrices"
+import { HeaderTicker } from "./HeaderTicker"
 
 function SunIcon(): JSX.Element {
   return (
@@ -227,7 +227,7 @@ export function Header(): JSX.Element {
 
           {/* Desktop Actions */}
           <div className="hidden items-center gap-3 md:flex">
-            <TokenPrices />
+            <HeaderTicker />
 
             <a
               href="https://matchbox.mallard.sh/docs"
