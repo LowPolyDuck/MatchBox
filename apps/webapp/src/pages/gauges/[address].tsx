@@ -1,6 +1,6 @@
-import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { InitialLoader } from "@/components/InitialLoader"
 import type { GaugeProfile } from "@/config/supabase"
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { createClient } from "@supabase/supabase-js"
 import type { GetServerSideProps } from "next"
 import dynamic from "next/dynamic"

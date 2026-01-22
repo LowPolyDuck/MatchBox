@@ -38,7 +38,10 @@ export function useBoostGauges() {
     })
 
   const addresses =
-    gaugeAddresses?.map((r) => r.result as Address).filter(Boolean) ?? []
+    gaugeAddresses
+      ?.map((r) => r.result as Address | undefined)
+      .filter((value): value is Address => !!value && value.startsWith("0x")) ??
+    []
 
   // Fetch gauge data: weights, isAlive, and rewardsBeneficiary for each gauge
   const { data: gaugeData, isLoading: isLoadingGaugeData } = useReadContracts({
@@ -320,8 +323,9 @@ export function useBoostGauges() {
 
   const gauges: BoostGauge[] = addresses.map((address, i) => {
     // gaugeData has 3 entries per gauge: weights, isAlive, rewardsBeneficiary
-    const totalWeight = (gaugeData?.[i * 3]?.result as bigint) ?? 0n
-    const isAlive = (gaugeData?.[i * 3 + 1]?.result as boolean) ?? false
+    const totalWeight = (gaugeData?.[i * 3]?.result as unknown as bigint) ?? 0n
+    const isAlive =
+      (gaugeData?.[i * 3 + 1]?.result as unknown as boolean) ?? false
     const veBTCTokenId = gaugeToTokenId.get(address.toLowerCase()) ?? 0n
     const gaugeVeBTCWeight = tokenIdToVotingPower.get(veBTCTokenId.toString())
     const boost = tokenIdToBoost.get(veBTCTokenId.toString())
