@@ -1,5 +1,5 @@
-import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { InitialLoader } from "@/components/InitialLoader"
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import dynamic from "next/dynamic"
 import Head from "next/head"
 
