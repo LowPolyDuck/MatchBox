@@ -1,3 +1,4 @@
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { InitialLoader } from "@/components/InitialLoader"
 import dynamic from "next/dynamic"
 import Head from "next/head"
@@ -11,9 +12,8 @@ const DashboardPage = dynamic(
 )
 
 export default function Dashboard() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/api/og`
+  const baseUrl = getBaseUrl()
+  const ogImageUrl = getOgImageUrl()
   const pageUrl = `${baseUrl}/dashboard`
   const title = "Dashboard | MatchBox"
   const description =

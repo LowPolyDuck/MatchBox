@@ -1,11 +1,12 @@
 import { AddressLink } from "@/components/AddressLink"
 import { Layout } from "@/components/Layout"
 import { SpringIn } from "@/components/SpringIn"
-import { formatAPY, useGaugesAPY } from "@/hooks/useAPY"
+import { calculateProjectedAPY, formatAPY, useGaugesAPY } from "@/hooks/useAPY"
 import { useAllGaugeProfiles } from "@/hooks/useGaugeProfiles"
 import type { BoostGauge } from "@/hooks/useGauges"
 import { useBoostGauges } from "@/hooks/useGauges"
 import { useVeMEZOLocks } from "@/hooks/useLocks"
+import { useMezoPrice } from "@/hooks/useMezoPrice"
 import {
   useResetVote,
   useVoteAllocations,
@@ -66,6 +67,7 @@ export default function BoostPage(): JSX.Element {
     [gauges],
   )
   const { apyMap, isLoading: isLoadingAPY } = useGaugesAPY(gaugesForAPY)
+  const { price: mezoPrice } = useMezoPrice()
 
   // Voting state
   const [selectedLockIndex, setSelectedLockIndex] = useState<
@@ -493,6 +495,12 @@ export default function BoostPage(): JSX.Element {
                                   style: {
                                     backgroundColor:
                                       theme.colors.backgroundPrimary,
+                                    position: "relative",
+                                    cursor: "pointer",
+                                    ":hover": {
+                                      backgroundColor:
+                                        theme.colors.backgroundSecondary,
+                                    },
                                   },
                                 },
                                 TableBodyCell: {
@@ -511,7 +519,7 @@ export default function BoostPage(): JSX.Element {
                                   return (
                                     <Link
                                       href={`/gauges/${gauge.address}`}
-                                      className="flex items-center gap-3 text-inherit no-underline transition-opacity hover:opacity-80"
+                                      className="flex items-center gap-3 text-inherit no-underline before:absolute before:inset-0 before:content-['']"
                                     >
                                       {/* Profile Picture */}
                                       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-[var(--surface-secondary)]">
@@ -623,6 +631,10 @@ export default function BoostPage(): JSX.Element {
                                   const apyData = apyMap.get(
                                     gauge.address.toLowerCase(),
                                   )
+                                  const userVotePercentage =
+                                    gaugeAllocations.get(gauge.originalIndex) ??
+                                    0
+
                                   if (isLoadingAPY) {
                                     return (
                                       <span className="text-xs text-[var(--content-secondary)]">
@@ -630,15 +642,33 @@ export default function BoostPage(): JSX.Element {
                                       </span>
                                     )
                                   }
+
+                                  const isProjected =
+                                    selectedLock && userVotePercentage > 0
+                                  const displayAPY = isProjected
+                                    ? calculateProjectedAPY(
+                                        apyData,
+                                        userVotePercentage,
+                                        selectedLock.votingPower,
+                                        mezoPrice,
+                                      )
+                                    : (apyData?.apy ?? null)
+
                                   return (
                                     <span
                                       className={`font-mono text-sm font-medium ${
-                                        apyData?.apy && apyData.apy > 0
+                                        displayAPY && displayAPY > 0
                                           ? "text-[var(--positive)]"
                                           : "text-[var(--content-secondary)]"
                                       }`}
+                                      title={
+                                        isProjected
+                                          ? "Projected APY after your vote"
+                                          : undefined
+                                      }
                                     >
-                                      {formatAPY(apyData?.apy ?? null)}
+                                      {formatAPY(displayAPY)}
+                                      {isProjected && " ↓"}
                                     </span>
                                   )
                                 }}
@@ -678,7 +708,7 @@ export default function BoostPage(): JSX.Element {
                                   const hasVote =
                                     currentVote !== undefined && currentVote > 0
                                   return (
-                                    <div className="flex items-center gap-1">
+                                    <div className="relative z-10 flex items-center gap-1">
                                       <Input
                                         value={currentVote?.toString() ?? ""}
                                         onChange={(e) =>

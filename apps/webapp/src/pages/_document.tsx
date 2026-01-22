@@ -1,6 +1,10 @@
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { Head, Html, Main, NextScript } from "next/document"
 
 export default function Document() {
+  const baseUrl = getBaseUrl()
+  const ogImageUrl = getOgImageUrl()
+
   return (
     <Html lang="en">
       <Head>
@@ -38,6 +42,34 @@ export default function Document() {
           content="#0c0c0c"
           media="(prefers-color-scheme: dark)"
         />
+
+        {/* Open Graph / Social Media */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Matchbox for Mezo" />
+        <meta
+          property="og:title"
+          content="Matchbox"
+        />
+        <meta
+          property="og:description"
+          content="The powerful veBTC + veMEZO matching platform for Mezo"
+        />
+        <meta property="og:image" content={ogImageUrl} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content={baseUrl} />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content="Matchbox"
+        />
+        <meta
+          name="twitter:description"
+          content="The powerful veBTC + veMEZO matching platform for Mezo"
+        />
+        <meta name="twitter:image" content={ogImageUrl} />
 
         {/* Prevent flash of wrong theme */}
         <script

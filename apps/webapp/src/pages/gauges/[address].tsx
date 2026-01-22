@@ -1,3 +1,4 @@
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { InitialLoader } from "@/components/InitialLoader"
 import type { GaugeProfile } from "@/config/supabase"
 import { createClient } from "@supabase/supabase-js"
@@ -48,9 +49,8 @@ export const getServerSideProps: GetServerSideProps<GaugePageProps> = async (
 }
 
 export default function GaugeDetail({ address, profile }: GaugePageProps) {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/api/og/gauge?address=${address}`
+  const baseUrl = getBaseUrl()
+  const ogImageUrl = getOgImageUrl()
   const pageUrl = `${baseUrl}/gauges/${address}`
 
   const displayName = profile?.display_name ?? `Gauge ${address.slice(0, 8)}...`

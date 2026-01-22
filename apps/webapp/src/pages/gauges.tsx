@@ -1,3 +1,4 @@
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { InitialLoader } from "@/components/InitialLoader"
 import dynamic from "next/dynamic"
 import Head from "next/head"
@@ -8,9 +9,8 @@ const GaugesPage = dynamic(() => import("@/components/pages/GaugesPage"), {
 })
 
 export default function Gauges() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/api/og`
+  const baseUrl = getBaseUrl()
+  const ogImageUrl = getOgImageUrl()
   const pageUrl = `${baseUrl}/gauges`
   const title = "Gauges | MatchBox"
   const description =
