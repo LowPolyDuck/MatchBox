@@ -39,6 +39,34 @@ export default function Document() {
           media="(prefers-color-scheme: dark)"
         />
 
+        {/* Open Graph / Social Media */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="MatchBox" />
+        <meta
+          property="og:title"
+          content="Matchbox"
+        />
+        <meta
+          property="og:description"
+          content="The powerful veBTC veBTC + veMEZO matching platform for Mezo"
+        />
+        <meta property="og:image" content="https://matchbox.mallard.sh/og.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content="https://matchbox.mallard.sh" />
+
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta
+          name="twitter:title"
+          content="Matchbox"
+        />
+        <meta
+          name="twitter:description"
+          content="The powerful veBTC veBTC + veMEZO matching platform for Mezo"
+        />
+        <meta name="twitter:image" content="https://matchbox.mallard.sh/og.png" />
+
         {/* Prevent flash of wrong theme */}
         <script
           dangerouslySetInnerHTML={{
