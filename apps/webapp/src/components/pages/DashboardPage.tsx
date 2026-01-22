@@ -101,8 +101,32 @@ function VeBTCLockCard({
   const unlockDate = new Date(Number(lock.end) * 1000)
   const isExpired = unlockDate < new Date()
 
-  return (
-    <Card withBorder overrides={{ Root: { style: { height: "100%" } } }}>
+  const cardContent = (
+    <Card
+      withBorder
+      overrides={{
+        Root: {
+          style: {
+            height: "100%",
+            ...(hasGauge && gaugeAddress
+              ? { cursor: "pointer", transition: "opacity 0.15s ease" }
+              : {}),
+          },
+          props: {
+            onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
+              if (hasGauge && gaugeAddress) {
+                e.currentTarget.style.opacity = "0.85"
+              }
+            },
+            onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+              if (hasGauge && gaugeAddress) {
+                e.currentTarget.style.opacity = "1"
+              }
+            },
+          },
+        },
+      }}
+    >
       <div className="flex h-full flex-col py-2">
         {/* Header with Profile Picture, Name, and Status */}
         <div className="mb-4 flex items-start justify-between">
@@ -209,14 +233,9 @@ function VeBTCLockCard({
               </p>
               {hasGauge && gaugeAddress ? (
                 <>
-                  <Link
-                    href={`/gauges/${gaugeAddress}`}
-                    className="text-[var(--accent)] no-underline hover:underline"
-                  >
-                    <span className="text-sm font-medium text-[var(--accent)]">
-                      View Gauge →
-                    </span>
-                  </Link>
+                  <span className="text-sm font-medium text-[var(--accent)]">
+                    View Gauge →
+                  </span>
                   {!isLoadingAPY &&
                   apy !== null &&
                   (apy > 0 || apy === Number.POSITIVE_INFINITY) ? (
@@ -252,6 +271,19 @@ function VeBTCLockCard({
       </div>
     </Card>
   )
+
+  if (hasGauge && gaugeAddress) {
+    return (
+      <Link
+        href={`/gauges/${gaugeAddress}`}
+        className="block h-full no-underline"
+      >
+        {cardContent}
+      </Link>
+    )
+  }
+
+  return cardContent
 }
 
 function VeMEZOLockCard({

@@ -495,6 +495,12 @@ export default function BoostPage(): JSX.Element {
                                   style: {
                                     backgroundColor:
                                       theme.colors.backgroundPrimary,
+                                    position: "relative",
+                                    cursor: "pointer",
+                                    ":hover": {
+                                      backgroundColor:
+                                        theme.colors.backgroundSecondary,
+                                    },
                                   },
                                 },
                                 TableBodyCell: {
@@ -513,7 +519,7 @@ export default function BoostPage(): JSX.Element {
                                   return (
                                     <Link
                                       href={`/gauges/${gauge.address}`}
-                                      className="flex items-center gap-3 text-inherit no-underline transition-opacity hover:opacity-80"
+                                      className="flex items-center gap-3 text-inherit no-underline before:absolute before:inset-0 before:content-['']"
                                     >
                                       {/* Profile Picture */}
                                       <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-[var(--surface-secondary)]">
@@ -702,7 +708,7 @@ export default function BoostPage(): JSX.Element {
                                   const hasVote =
                                     currentVote !== undefined && currentVote > 0
                                   return (
-                                    <div className="flex items-center gap-1">
+                                    <div className="relative z-10 flex items-center gap-1">
                                       <Input
                                         value={currentVote?.toString() ?? ""}
                                         onChange={(e) =>
