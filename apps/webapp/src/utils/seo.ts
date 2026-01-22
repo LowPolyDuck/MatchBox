@@ -16,7 +16,7 @@ export const getBaseUrl = () => {
 
     // 3. Fallback to default (if all else fails)
     if (!baseUrl) {
-        baseUrl = "https://matchbox.mezo.org"
+        baseUrl = "https://matchbox.mallard.sh"
     }
 
     if (baseUrl && !baseUrl.startsWith("http")) {
@@ -26,12 +26,6 @@ export const getBaseUrl = () => {
     return baseUrl.replace(/\/$/, "")
 }
 
-export const getOgImageUrl = (gaugeAddress?: string) => {
-    const baseUrl = getBaseUrl()
-
-    if (gaugeAddress) {
-        return `${baseUrl}/api/og/gauge?address=${gaugeAddress}`
-    }
-
-    return `${baseUrl}/api/og`
+export const getOgImageUrl = () => {
+    return `${getBaseUrl()}/og.png`
 }
