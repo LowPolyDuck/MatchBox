@@ -46,10 +46,7 @@ export default function Document() {
         {/* Open Graph / Social Media */}
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Matchbox for Mezo" />
-        <meta
-          property="og:title"
-          content="Matchbox"
-        />
+        <meta property="og:title" content="Matchbox" />
         <meta
           property="og:description"
           content="The powerful veBTC + veMEZO matching platform for Mezo"
@@ -61,10 +58,7 @@ export default function Document() {
 
         {/* Twitter Card */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta
-          name="twitter:title"
-          content="Matchbox"
-        />
+        <meta name="twitter:title" content="Matchbox" />
         <meta
           name="twitter:description"
           content="The powerful veBTC + veMEZO matching platform for Mezo"

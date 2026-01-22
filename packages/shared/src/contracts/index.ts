@@ -20,7 +20,7 @@ export const CONTRACTS = {
   mainnet: {
     mezoToken: getAddress("0x7B7c000000000000000000000000000000000001"),
     veMEZO: getAddress("0xb90fdAd3DFD180458D62Cc6acedc983D78E20122"),
-    veBTC: getAddress("0x3D4b1b884A7a1E59fE8589a3296EC8f8cBB6f279"), 
+    veBTC: getAddress("0x3D4b1b884A7a1E59fE8589a3296EC8f8cBB6f279"),
     boostVoter: getAddress("0x2Ba614a598Cffa5a19d683cDCA97bac3a49313d1"),
     poolsVoter: "0x...", // CL: "0x..."
     factoryRegistry: getAddress("0x04B94f55780682478c8D8329368AAAfD320F4D32"),

@@ -803,7 +803,9 @@ export function useClaimableBribes(veMEZOTokenIds: bigint[]): {
     })
 
   const gaugeAddresses =
-    gaugeAddressesData?.map((r) => r.result as Address).filter(Boolean) ?? []
+    gaugeAddressesData
+      ?.map((r) => r.result as Address | undefined)
+      .filter((v): v is Address => !!v) ?? []
 
   // Get bribe addresses for all gauges
   const { data: bribeAddressesData, isLoading: isLoadingBribes } =
