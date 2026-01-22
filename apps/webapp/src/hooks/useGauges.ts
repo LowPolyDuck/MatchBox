@@ -38,7 +38,12 @@ export function useBoostGauges() {
     })
 
   const addresses =
-    gaugeAddresses?.map((r) => r.result as Address).filter(Boolean) ?? []
+    gaugeAddresses
+      ?.map((r) => r.result)
+      .filter(
+        (value): value is Address =>
+          typeof value === "string" && value.startsWith("0x"),
+      ) ?? []
 
   // Fetch gauge data: weights, isAlive, and rewardsBeneficiary for each gauge
   const { data: gaugeData, isLoading: isLoadingGaugeData } = useReadContracts({
