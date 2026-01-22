@@ -97,7 +97,8 @@ export default function GaugesPage(): JSX.Element {
   )
 
   const filteredAndSortedGauges = useMemo(() => {
-    let result = [...gauges]
+    // Filter out gauges where veBTC has been withdrawn (veBTCTokenId === 0n)
+    let result = gauges.filter((g) => g.veBTCTokenId > 0n)
 
     if (statusFilter === "active") {
       result = result.filter((g) => g.isAlive)

@@ -48,7 +48,7 @@ export default function Document() {
         />
         <meta
           property="og:description"
-          content="The powerful veBTC veBTC + veMEZO matching platform for Mezo"
+          content="The powerful veBTC + veMEZO matching platform for Mezo"
         />
         <meta property="og:image" content="https://matchbox.mallard.sh/og.png" />
         <meta property="og:image:width" content="1200" />
@@ -63,7 +63,7 @@ export default function Document() {
         />
         <meta
           name="twitter:description"
-          content="The powerful veBTC veBTC + veMEZO matching platform for Mezo"
+          content="The powerful veBTC + veMEZO matching platform for Mezo"
         />
         <meta name="twitter:image" content="https://matchbox.mallard.sh/og.png" />
 
