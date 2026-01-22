@@ -1,3 +1,4 @@
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { InitialLoader } from "@/components/InitialLoader"
 import dynamic from "next/dynamic"
 import Head from "next/head"
@@ -8,9 +9,8 @@ const BoostPage = dynamic(() => import("@/components/pages/BoostPage"), {
 })
 
 export default function Boost() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/og.png`
+  const baseUrl = getBaseUrl()
+  const ogImageUrl = getOgImageUrl()
   const pageUrl = `${baseUrl}/boost`
   const title = "Boost | MatchBox"
   const description =

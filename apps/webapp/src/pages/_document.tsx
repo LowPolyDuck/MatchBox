@@ -1,9 +1,9 @@
+import { getBaseUrl, getOgImageUrl } from "@/utils/seo"
 import { Head, Html, Main, NextScript } from "next/document"
 
 export default function Document() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/og.png`
+  const baseUrl = getBaseUrl()
+  const ogImageUrl = getOgImageUrl()
 
   return (
     <Html lang="en">
@@ -45,7 +45,7 @@ export default function Document() {
 
         {/* Open Graph / Social Media */}
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="MatchBox" />
+        <meta property="og:site_name" content="Matchbox for Mezo" />
         <meta
           property="og:title"
           content="Matchbox"
