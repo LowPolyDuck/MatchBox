@@ -13,7 +13,7 @@ const DashboardPage = dynamic(
 export default function Dashboard() {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/api/og`
+  const ogImageUrl = `${baseUrl}/og.png`
   const pageUrl = `${baseUrl}/dashboard`
   const title = "Dashboard | MatchBox"
   const description =

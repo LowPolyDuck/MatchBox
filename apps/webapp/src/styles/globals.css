@@ -100,9 +100,19 @@
   }
 
   body {
-    background-color: var(--background);
+    background-color: transparent;
     color: var(--content-primary);
     overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  html {
+    background-color: transparent;
+  }
+
+  /* Next.js app wrapper */
+  #__next {
+    background-color: transparent;
     min-height: 100vh;
   }
 
@@ -551,4 +561,134 @@
 
 .ticker-dropdown-exit {
   animation: ticker-dropdown-exit 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ============================================
+   SUNSET BACKGROUND ANIMATION
+   Sunset-style gradient with pulsing effect
+   ============================================ */
+
+.sunset-background-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background-color: var(--background);
+}
+
+/* Main sunset orb - orange glow at bottom */
+.sunset-background-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(120px);
+  will-change: transform, opacity;
+}
+
+.sunset-background-orb-primary {
+  width: 140%;
+  height: 80%;
+  left: -20%;
+  bottom: -40%;
+  background: radial-gradient(
+    ellipse at center bottom,
+    rgba(247, 147, 26, 0.35) 0%,
+    rgba(247, 147, 26, 0.2) 25%,
+    rgba(200, 80, 0, 0.1) 50%,
+    transparent 70%
+  );
+  animation: sunset-background-pulse 8s ease-in-out infinite;
+}
+
+.sunset-background-orb-secondary {
+  width: 100%;
+  height: 60%;
+  left: 0;
+  bottom: -30%;
+  background: radial-gradient(
+    ellipse at center bottom,
+    rgba(255, 120, 50, 0.15) 0%,
+    rgba(247, 147, 26, 0.08) 40%,
+    transparent 70%
+  );
+  animation: sunset-background-pulse-secondary 12s ease-in-out infinite;
+  animation-delay: -4s;
+}
+
+/* Ambient glow for extra warmth */
+.sunset-background-ambient {
+  position: absolute;
+  width: 100%;
+  height: 50%;
+  bottom: 0;
+  left: 0;
+  background: linear-gradient(
+    to top,
+    rgba(247, 147, 26, 0.06) 0%,
+    transparent 100%
+  );
+  animation: sunset-background-ambient-pulse 6s ease-in-out infinite;
+}
+
+/* Keyframe animations */
+@keyframes sunset-background-pulse {
+  0%,
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05) translateY(-2%);
+    opacity: 0.85;
+  }
+}
+
+@keyframes sunset-background-pulse-secondary {
+  0%,
+  100% {
+    transform: scale(1) translateX(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08) translateX(2%);
+    opacity: 0.7;
+  }
+}
+
+@keyframes sunset-background-ambient-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/* Dark mode adjustments - slightly more visible */
+.dark-mode .sunset-background-orb-primary {
+  background: radial-gradient(
+    ellipse at center bottom,
+    rgba(247, 147, 26, 0.4) 0%,
+    rgba(247, 147, 26, 0.25) 25%,
+    rgba(200, 80, 0, 0.12) 50%,
+    transparent 70%
+  );
+}
+
+.dark-mode .sunset-background-orb-secondary {
+  background: radial-gradient(
+    ellipse at center bottom,
+    rgba(255, 120, 50, 0.18) 0%,
+    rgba(247, 147, 26, 0.1) 40%,
+    transparent 70%
+  );
+}
+
+.dark-mode .sunset-background-ambient {
+  background: linear-gradient(
+    to top,
+    rgba(247, 147, 26, 0.08) 0%,
+    transparent 100%
+  );
 }

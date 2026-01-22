@@ -50,7 +50,7 @@ export const getServerSideProps: GetServerSideProps<GaugePageProps> = async (
 export default function GaugeDetail({ address, profile }: GaugePageProps) {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/api/og/gauge?address=${address}`
+  const ogImageUrl = `${baseUrl}/og.png`
   const pageUrl = `${baseUrl}/gauges/${address}`
 
   const displayName = profile?.display_name ?? `Gauge ${address.slice(0, 8)}...`

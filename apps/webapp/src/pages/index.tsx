@@ -10,7 +10,7 @@ const HomePage = dynamic(() => import("@/components/pages/HomePage"), {
 export default function Home() {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/api/og`
+  const ogImageUrl = `${baseUrl}/og.png`
   const title = "MatchBox - Boost Voting for Mezo"
   const description =
     "Vote with your veMEZO to boost gauges and earn rewards on Mezo."

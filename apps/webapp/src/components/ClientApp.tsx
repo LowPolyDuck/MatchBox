@@ -10,6 +10,7 @@ import { ClayProvider } from "@mezo-org/mezo-clay"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { AppProps } from "next/app"
 import { WagmiProvider } from "wagmi"
+import { SunsetBackground } from "./SunsetBackground"
 
 const queryClient = new QueryClient()
 
@@ -21,6 +22,7 @@ function ThemedApp({ Component, pageProps }: ClientAppProps) {
 
   return (
     <ClayProvider theme={themeObject}>
+      <SunsetBackground />
       <Component {...pageProps} />
     </ClayProvider>
   )

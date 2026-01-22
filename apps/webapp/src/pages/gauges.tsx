@@ -10,7 +10,7 @@ const GaugesPage = dynamic(() => import("@/components/pages/GaugesPage"), {
 export default function Gauges() {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://matchbox.mezo.org"
-  const ogImageUrl = `${baseUrl}/api/og`
+  const ogImageUrl = `${baseUrl}/og.png`
   const pageUrl = `${baseUrl}/gauges`
   const title = "Gauges | MatchBox"
   const description =
