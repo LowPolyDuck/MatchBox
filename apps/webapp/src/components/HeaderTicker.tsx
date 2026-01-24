@@ -2,7 +2,9 @@ import { useBtcPrice } from "@/hooks/useBtcPrice"
 import { useEpochCountdown } from "@/hooks/useEpochCountdown"
 import { useMezoPrice } from "@/hooks/useMezoPrice"
 import { useRpcHealth } from "@/hooks/useRpcHealth"
+import { CHAIN_ID } from "@repo/shared/contracts"
 import { useEffect, useRef, useState } from "react"
+import { useChainId } from "wagmi"
 
 const CYCLE_INTERVAL_MS = 4000 // 4 seconds per metric
 
@@ -34,43 +36,72 @@ function formatPrice(price: number | null): string {
 function TickerItem({
   metric,
   animationClass,
+  isInline = false,
 }: {
   metric: TickerMetric
   animationClass?: string
+  isInline?: boolean
 }): JSX.Element {
   return (
     <div
-      className={`absolute inset-0 flex items-center gap-2 ${animationClass ?? ""}`}
+      className={`absolute inset-0 flex items-center ${isInline ? "justify-center gap-3 md:gap-5" : "gap-2"} ${animationClass ?? ""}`}
     >
       {metric.icon && (
         <img
           src={metric.icon}
           alt={metric.label}
-          width={20}
-          height={20}
-          className="h-5 w-5 rounded-full"
+          width={isInline ? 40 : 20}
+          height={isInline ? 40 : 20}
+          className={isInline ? "h-6 w-6 rounded-full md:h-10 md:w-10" : "h-5 w-5 rounded-full"}
         />
+      )}
+      {metric.isClockIcon && isInline && (
+        <svg
+          width="40"
+          height="40"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="h-6 w-6 text-[var(--content-secondary)] md:h-10 md:w-10"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>
       )}
       {metric.statusColor && (
         <span
-          className="h-2 w-2 rounded-full"
+          className={isInline ? "h-2.5 w-2.5 rounded-full md:h-3 md:w-3" : "h-2 w-2 rounded-full"}
           style={{
             backgroundColor: metric.statusColor,
-            boxShadow: `0 0 6px ${metric.statusColor}`,
+            boxShadow: `0 0 ${isInline ? "8" : "6"}px ${metric.statusColor}`,
           }}
         />
       )}
-      <span className="whitespace-nowrap font-mono text-xs text-[var(--content-secondary)]">
+      <span
+        className={`whitespace-nowrap font-mono ${isInline ? "text-xs md:text-sm" : "text-xs"} text-[var(--content-secondary)]`}
+      >
         {metric.label}
       </span>
-      <span className="whitespace-nowrap font-mono text-xs tabular-nums text-[#F7931A]">
+      <span
+        className={`whitespace-nowrap font-mono ${isInline ? "text-xl font-semibold md:text-3xl" : "text-xs"} tabular-nums text-[#F7931A]`}
+      >
         {metric.value}
       </span>
     </div>
   )
 }
 
-export function HeaderTicker(): JSX.Element {
+interface HeaderTickerProps {
+  showInline?: boolean
+}
+
+export function HeaderTicker({
+  showInline = false,
+}: HeaderTickerProps): JSX.Element {
   const { price: btcPrice, isLoading: btcLoading } = useBtcPrice()
   const {
     price: mezoPrice,
@@ -78,7 +109,10 @@ export function HeaderTicker(): JSX.Element {
     isError: mezoError,
   } = useMezoPrice()
   const { timeRemaining } = useEpochCountdown()
+
   const { status: rpcStatus } = useRpcHealth()
+  const chainId = useChainId()
+  const isMainnet = chainId === CHAIN_ID.mainnet
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [prevIndex, setPrevIndex] = useState<number | null>(null)
@@ -114,11 +148,13 @@ export function HeaderTicker(): JSX.Element {
     {
       id: "mezo",
       label: "MEZO",
-      value: mezoLoading
-        ? "..."
-        : mezoError
-          ? "N/A"
-          : `$${formatPrice(mezoPrice)}`,
+      value: isMainnet
+        ? "N/A"
+        : mezoLoading
+          ? "..."
+          : mezoError
+            ? "N/A"
+            : `$${formatPrice(mezoPrice)}`,
       icon: "/token icons/Mezo.svg",
     },
     {
@@ -185,6 +221,51 @@ export function HeaderTicker(): JSX.Element {
     }, 150)
   }
 
+  if (showInline) {
+    // Homepage inline mode - large cycling display
+    return (
+      <div className="w-full">
+        <div className="mx-auto max-w-4xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-8 py-6 md:px-12 md:py-10">
+
+
+          {/* Ticker container - sized by ghost element to fit largest content */}
+          <div className="relative mx-auto w-fit overflow-hidden">
+            {/* Ghost element to reserve space for largest possible content */}
+            <div className="invisible flex items-center justify-center gap-3 opacity-0 md:gap-5">
+              {/* Icon placeholder */}
+              <div className="h-6 w-6 rounded-full md:h-10 md:w-10" />
+              {/* Longest label */}
+              <span className="whitespace-nowrap font-mono text-xs text-[var(--content-secondary)] md:text-sm">
+                Epoch
+              </span>
+              {/* Longest value */}
+              <span className="whitespace-nowrap font-mono text-xl font-semibold tabular-nums text-[#F7931A] md:text-3xl">
+                00d 00h 00m 00s
+              </span>
+            </div>
+
+            {/* Previous item sliding out */}
+            {isTransitioning && prevMetric && (
+              <TickerItem
+                metric={prevMetric}
+                animationClass="ticker-slide-out"
+                isInline={true}
+              />
+            )}
+
+            {/* Current item */}
+            <TickerItem
+              metric={currentMetric}
+              animationClass={isTransitioning ? "ticker-slide-in" : ""}
+              isInline={true}
+            />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Navbar mode - compact display with hover dropdown
   return (
     <div
       className="relative flex items-center"
@@ -210,21 +291,19 @@ export function HeaderTicker(): JSX.Element {
 
       {/* Hover dropdown */}
       <div
-        className={`absolute -left-1 top-full z-50 min-w-[200px] overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-lg ${
-          isHovered
-            ? "ticker-dropdown-enter"
-            : "ticker-dropdown-exit pointer-events-none"
-        }`}
+        className={`absolute -left-1 top-full z-50 min-w-[200px] overflow-hidden border border-[var(--border)] bg-[var(--surface)] shadow-lg ${isHovered
+          ? "ticker-dropdown-enter"
+          : "ticker-dropdown-exit pointer-events-none"
+          }`}
       >
         <div className="flex flex-col">
           {metrics.map((metric, index) => (
             <div
               key={metric.id}
-              className={`flex items-center gap-3 px-4 py-2.5 ${
-                index < metrics.length - 1
-                  ? "border-b border-[var(--border)]"
-                  : ""
-              }`}
+              className={`flex items-center gap-3 px-4 py-2.5 ${index < metrics.length - 1
+                ? "border-b border-[var(--border)]"
+                : ""
+                }`}
             >
               {/* Icon container - consistent 24px width for alignment */}
               <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center">

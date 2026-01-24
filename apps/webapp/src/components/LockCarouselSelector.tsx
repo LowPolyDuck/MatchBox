@@ -64,6 +64,29 @@ function ChevronRightIcon({ size = 24 }: { size?: number }) {
   )
 }
 
+// Format token values with appropriate precision
+function formatTokenValue(amount: bigint, decimals: number): string {
+  const value = Number(formatUnits(amount, decimals))
+  if (value === 0) return "0"
+  if (value >= 1000)
+    return value.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  if (value >= 1)
+    return value.toLocaleString(undefined, { maximumFractionDigits: 4 })
+  if (value >= 0.0001)
+    return value.toLocaleString(undefined, { maximumFractionDigits: 6 })
+  return value.toLocaleString(undefined, {
+    maximumFractionDigits: 8,
+    minimumSignificantDigits: 1,
+  })
+}
+
+// Format APY value
+function formatAPY(apy: number): string {
+  if (apy === Number.POSITIVE_INFINITY) return "∞%"
+  if (apy >= 1000) return `${(apy / 1000).toFixed(1)}k%`
+  return `${apy.toFixed(1)}%`
+}
+
 export interface LockItem {
   tokenId: bigint
   amount: bigint
@@ -79,6 +102,8 @@ export interface VeMEZOLockData extends LockItem {
   currentAPY?: number | null
   upcomingAPY?: number | null
   claimableUSD?: number | null
+  isLoadingUsedWeight?: boolean
+  isLoadingAPY?: boolean
 }
 
 export interface VeBTCLockData extends LockItem {
@@ -99,8 +124,8 @@ interface LockCarouselSelectorProps<T extends LockItem> {
   renderCard?: (lock: T, index: number, isSelected: boolean) => React.ReactNode
 }
 
-// Default rich card for veMEZO locks
-function DefaultVeMEZOCard({
+// Dashboard-style card for veMEZO locks
+function DashboardVeMEZOCard({
   lock,
   isSelected,
 }: {
@@ -110,110 +135,153 @@ function DefaultVeMEZOCard({
   const unlockDate = lock.end ? new Date(Number(lock.end) * 1000) : null
   const isExpired = unlockDate ? unlockDate < new Date() : false
 
-  return (
-    <div className="flex h-full flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[rgba(247,147,26,0.35)] bg-[rgba(247,147,26,0.12)]">
-            <TokenIcon symbol="MEZO" size={18} />
-          </div>
-          <div>
-            <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-              veMEZO
-            </p>
-            <p className="text-sm font-semibold text-[var(--content-primary)]">
-              #{lock.tokenId.toString()}
-            </p>
-          </div>
-        </div>
-        <span
-          className={`rounded-full px-2 py-1 text-2xs font-semibold ${
-            isSelected
-              ? "bg-[#F7931A] text-[#0B0B0B]"
-              : "border border-[var(--border)] text-[var(--content-tertiary)]"
-          }`}
-        >
-          {isSelected ? "Selected" : "Select"}
-        </span>
-      </div>
+  const hasAPY =
+    (lock.currentAPY !== null &&
+      lock.currentAPY !== undefined &&
+      lock.currentAPY > 0) ||
+    (lock.upcomingAPY !== null &&
+      lock.upcomingAPY !== undefined &&
+      lock.upcomingAPY > 0)
 
-      <div className="flex flex-wrap items-center gap-2">
+  return (
+    <div className="flex h-full flex-col">
+      {/* Header */}
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-[var(--content-primary)]">
+              veMEZO #{lock.tokenId.toString()}
+            </span>
+            {isSelected && (
+              <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[#F7931A]">
+                <svg
+                  width="10"
+                  height="10"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#0B0B0B"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+            )}
+          </div>
+          {lock.isLoadingAPY ? (
+            <div className="mt-1">
+              <span className="inline-flex items-center rounded border border-[var(--border)] bg-[var(--surface-secondary)] px-1.5 py-0.5 text-[11px] text-[var(--content-tertiary)]">
+                Loading...
+              </span>
+            </div>
+          ) : (
+            hasAPY && (
+              <div className="mt-1 flex items-center gap-1.5">
+                {lock.currentAPY !== null &&
+                  lock.currentAPY !== undefined &&
+                  lock.currentAPY > 0 && (
+                    <span className="inline-flex items-center rounded border border-[rgba(var(--positive-rgb),0.3)] bg-[rgba(var(--positive-rgb),0.15)] px-1.5 py-0.5 text-[11px] font-semibold text-[var(--positive)]">
+                      {formatAPY(lock.currentAPY)} APY
+                    </span>
+                  )}
+                {lock.upcomingAPY !== null &&
+                  lock.upcomingAPY !== undefined &&
+                  lock.upcomingAPY > 0 && (
+                    <>
+                      {lock.currentAPY !== null &&
+                        lock.currentAPY !== undefined &&
+                        lock.currentAPY > 0 && (
+                          <span className="text-[8px] text-[var(--content-tertiary)]">
+                            →
+                          </span>
+                        )}
+                      <span className="inline-flex items-center rounded-sm border border-[var(--border)] bg-[var(--surface-secondary)] px-1 py-0.5 text-[9px] font-medium text-[var(--content-secondary)]">
+                        {formatAPY(lock.upcomingAPY)}
+                      </span>
+                    </>
+                  )}
+              </div>
+            )
+          )}
+        </div>
         <Tag
           closeable={false}
           color={lock.isPermanent ? "green" : isExpired ? "red" : "yellow"}
         >
           {lock.isPermanent ? "Permanent" : isExpired ? "Expired" : "Active"}
         </Tag>
-        {lock.currentAPY !== undefined && lock.currentAPY !== null && (
-          <span className="inline-flex items-center rounded-full border border-[rgba(var(--positive-rgb),0.35)] bg-[rgba(var(--positive-rgb),0.15)] px-2 py-1 text-2xs font-semibold text-[var(--positive)]">
-            {lock.currentAPY.toFixed(1)}% APY
-          </span>
-        )}
-        {lock.upcomingAPY !== undefined &&
-          lock.upcomingAPY !== null &&
-          lock.upcomingAPY !== lock.currentAPY && (
-            <span className="inline-flex items-center rounded-full border border-[rgba(247,147,26,0.35)] bg-[rgba(247,147,26,0.12)] px-2 py-1 text-2xs font-semibold text-[#F7931A]">
-              Next {lock.upcomingAPY.toFixed(1)}%
-            </span>
-          )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-2.5">
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-            Locked
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
+            Locked Amount
           </p>
-          <p className="font-mono text-xs font-semibold tabular-nums text-[var(--content-primary)]">
-            {formatUnits(lock.amount, 18).slice(0, 8)} MEZO
-          </p>
+          <div className="flex items-center gap-1.5">
+            <TokenIcon symbol="MEZO" size={16} />
+            <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+              {formatTokenValue(lock.amount, 18)}
+            </span>
+          </div>
         </div>
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Voting Power
           </p>
-          <p className="font-mono text-xs font-semibold tabular-nums text-[var(--content-primary)]">
-            {formatUnits(lock.votingPower, 18).slice(0, 8)}
-          </p>
+          <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+            {formatTokenValue(lock.votingPower, 18)}
+          </span>
         </div>
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Used Weight
           </p>
-          <p className="font-mono text-xs font-semibold tabular-nums text-[var(--content-primary)]">
-            {lock.usedWeight
-              ? formatUnits(lock.usedWeight, 18).slice(0, 8)
-              : "0"}
-          </p>
+          {lock.isLoadingUsedWeight ? (
+            <span className="font-mono text-sm text-[var(--content-tertiary)]">
+              —
+            </span>
+          ) : (
+            <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+              {lock.usedWeight ? formatTokenValue(lock.usedWeight, 18) : "0"}
+            </span>
+          )}
         </div>
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Can Vote
           </p>
-          <p
-            className={`text-xs font-semibold ${
-              lock.canVote ? "text-[var(--positive)]" : "text-[var(--content-tertiary)]"
-            }`}
-          >
-            {lock.canVote ? "Yes" : "No"}
-          </p>
+          {lock.isLoadingUsedWeight ? (
+            <span className="text-sm text-[var(--content-tertiary)]">—</span>
+          ) : (
+            <span
+              className={`text-sm font-medium ${
+                lock.canVote
+                  ? "text-[var(--positive)]"
+                  : "text-[var(--warning)]"
+              }`}
+            >
+              {lock.canVote ? "Yes" : "Next Epoch"}
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="mt-auto rounded-lg border border-[var(--border)] px-2 py-1.5 text-2xs text-[var(--content-secondary)]">
-        {lock.isPermanent
-          ? "Permanently locked"
-          : isExpired
-            ? "Lock expired"
-            : unlockDate
-              ? `Unlocks ${unlockDate.toLocaleDateString()}`
-              : "Active lock"}
+      {/* Footer */}
+      <div className="mt-auto border-t border-[var(--border)] pt-3">
+        <p className="text-xs text-[var(--content-secondary)]">
+          Unlocks:{" "}
+          {lock.isPermanent ? "Never" : unlockDate?.toLocaleDateString()}
+        </p>
       </div>
     </div>
   )
 }
 
-// Default rich card for veBTC locks
-function DefaultVeBTCCard({
+// Dashboard-style card for veBTC locks
+function DashboardVeBTCCard({
   lock,
   isSelected,
 }: {
@@ -224,10 +292,12 @@ function DefaultVeBTCCard({
   const isExpired = unlockDate ? unlockDate < new Date() : false
 
   return (
-    <div className="flex h-full flex-col gap-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-secondary)]">
+    <div className="flex h-full flex-col">
+      {/* Header with profile */}
+      <div className="mb-3 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          {/* Profile Picture */}
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border border-[var(--border)] bg-[var(--surface-secondary)]">
             {lock.profilePictureUrl ? (
               <img
                 src={lock.profilePictureUrl}
@@ -235,113 +305,124 @@ function DefaultVeBTCCard({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <span className="text-sm font-medium text-[var(--content-secondary)]">
-                #{lock.tokenId.toString().slice(0, 2)}
+              <span className="text-xs text-[var(--content-secondary)]">
+                #{lock.tokenId.toString()}
               </span>
             )}
           </div>
-          <div className="min-w-0">
-            <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-              veBTC Gauge
-            </p>
-            <p
-              className={`truncate text-sm font-semibold ${
-                lock.displayName
-                  ? "text-[var(--positive)]"
-                  : "text-[var(--content-primary)]"
-              }`}
-            >
-              {lock.displayName || `veBTC #${lock.tokenId.toString()}`}
-            </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span
+                className={`truncate text-sm font-medium ${
+                  lock.displayName
+                    ? "text-[var(--positive)]"
+                    : "text-[var(--content-primary)]"
+                }`}
+              >
+                {lock.displayName || `veBTC #${lock.tokenId.toString()}`}
+              </span>
+              {isSelected && (
+                <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full bg-[#F7931A]">
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="#0B0B0B"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            {lock.hasGauge &&
+              lock.gaugeAPY !== null &&
+              lock.gaugeAPY !== undefined &&
+              lock.gaugeAPY > 0 && (
+                <div className="mt-1 flex w-fit items-center rounded border border-[var(--positive-subtle)] bg-[var(--positive-subtle)] px-1.5 py-0.5">
+                  <span className="text-xs font-medium text-[var(--positive)]">
+                    {formatAPY(lock.gaugeAPY)} APY
+                  </span>
+                </div>
+              )}
           </div>
         </div>
-        <span
-          className={`rounded-full px-2 py-1 text-2xs font-semibold ${
-            isSelected
-              ? "bg-[#F7931A] text-[#0B0B0B]"
-              : "border border-[var(--border)] text-[var(--content-tertiary)]"
-          }`}
-        >
-          {isSelected ? "Selected" : "Select"}
-        </span>
-      </div>
-
-      {lock.description && (
-        <p className="line-clamp-2 text-2xs text-[var(--content-secondary)]">
-          {lock.description}
-        </p>
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
         <Tag
           closeable={false}
           color={lock.isPermanent ? "green" : isExpired ? "red" : "yellow"}
         >
           {lock.isPermanent ? "Permanent" : isExpired ? "Expired" : "Active"}
         </Tag>
-        {lock.hasGauge && lock.gaugeAPY !== undefined && lock.gaugeAPY !== null && lock.gaugeAPY > 0 && (
-          <span className="inline-flex items-center rounded-full border border-[rgba(var(--positive-rgb),0.35)] bg-[rgba(var(--positive-rgb),0.15)] px-2 py-1 text-2xs font-semibold text-[var(--positive)]">
-            {lock.gaugeAPY.toFixed(1)}% APY
-          </span>
-        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-secondary)] p-2.5">
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-            Locked BTC
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
+            Locked Amount
           </p>
-          <p className="font-mono text-xs font-semibold tabular-nums text-[var(--content-primary)]">
-            {formatUnits(lock.amount, 18).slice(0, 8)}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <TokenIcon symbol="BTC" size={16} />
+            <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+              {formatTokenValue(lock.amount, 18)}
+            </span>
+          </div>
         </div>
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Voting Power
           </p>
-          <p className="font-mono text-xs font-semibold tabular-nums text-[var(--content-primary)]">
-            {formatUnits(lock.votingPower, 18).slice(0, 8)}
-          </p>
+          <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+            {formatTokenValue(lock.votingPower, 18)}
+          </span>
         </div>
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-            Boost
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
+            Current Boost
           </p>
-          <p className="font-mono text-xs font-semibold tabular-nums text-[var(--content-primary)]">
-            {lock.boostMultiplier !== undefined
-              ? `${lock.boostMultiplier.toFixed(2)}x`
-              : "1.00x"}
-          </p>
-        </div>
-        <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-            Gauge
-          </p>
-          <p
-            className={`text-xs font-semibold ${
-              lock.hasGauge ? "text-[var(--positive)]" : "text-[var(--content-tertiary)]"
+          <span
+            className={`font-mono text-sm font-medium tabular-nums ${
+              lock.boostMultiplier && lock.boostMultiplier > 1
+                ? "text-[var(--positive)]"
+                : "text-[var(--content-primary)]"
             }`}
           >
-            {lock.hasGauge ? "Active" : "None"}
+            {lock.boostMultiplier?.toFixed(2) ?? "1.00"}x
+          </span>
+        </div>
+        <div>
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
+            Gauge
           </p>
+          <span
+            className={`text-sm font-medium ${
+              lock.hasGauge
+                ? "text-[var(--positive)]"
+                : "text-[var(--content-secondary)]"
+            }`}
+          >
+            {lock.hasGauge ? "Active" : "No Gauge"}
+          </span>
         </div>
       </div>
 
-      <div className="mt-auto rounded-lg border border-[var(--border)] px-2 py-1.5 text-2xs text-[var(--content-secondary)]">
-        {lock.isPermanent
-          ? "Permanently locked"
-          : isExpired
-            ? "Lock expired"
-            : unlockDate
-              ? `Unlocks ${unlockDate.toLocaleDateString()}`
-              : "Active lock"}
+      {/* Footer */}
+      <div className="mt-auto border-t border-[var(--border)] pt-3">
+        <p className="text-xs text-[var(--content-secondary)]">
+          Unlocks:{" "}
+          {lock.isPermanent ? "Never" : unlockDate?.toLocaleDateString()}
+        </p>
       </div>
     </div>
   )
 }
 
-// Simple fallback card (original design)
-function SimpleLockCard({
+// Simple fallback card
+function SimpleDashboardCard({
   lock,
   lockType,
   isSelected,
@@ -355,75 +436,68 @@ function SimpleLockCard({
   const isExpired = unlockDate ? unlockDate < new Date() : false
 
   return (
-    <div className="flex flex-col gap-3 py-1">
+    <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="mb-3 flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <TokenIcon symbol={tokenSymbol} size={20} />
           <span className="text-sm font-medium text-[var(--content-primary)]">
             {lockType} #{lock.tokenId.toString()}
           </span>
+          {isSelected && (
+            <div className="flex h-4 w-4 items-center justify-center rounded-full bg-[#F7931A]">
+              <svg
+                width="10"
+                height="10"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#0B0B0B"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+          )}
         </div>
-        {isSelected && (
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#F7931A]">
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="white"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          </div>
-        )}
+        <Tag
+          closeable={false}
+          color={lock.isPermanent ? "green" : isExpired ? "red" : "yellow"}
+        >
+          {lock.isPermanent ? "Permanent" : isExpired ? "Expired" : "Active"}
+        </Tag>
       </div>
 
       {/* Stats */}
-      <div className="flex flex-col gap-2">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-            {lockType === "veBTC" ? "Locked" : "Amount"}
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
+            Locked Amount
           </p>
-          <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
-            {formatUnits(lock.amount, 18).slice(0, 8)}{" "}
-            {lockType === "veBTC" ? "BTC" : "MEZO"}
-          </p>
+          <div className="flex items-center gap-1.5">
+            <TokenIcon symbol={tokenSymbol} size={16} />
+            <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+              {formatTokenValue(lock.amount, 18)}
+            </span>
+          </div>
         </div>
         <div>
-          <p className="text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+          <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Voting Power
           </p>
-          <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
-            {formatUnits(lock.votingPower, 18).slice(0, 8)}
-          </p>
+          <span className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+            {formatTokenValue(lock.votingPower, 18)}
+          </span>
         </div>
       </div>
 
-      {/* Status indicator */}
-      <div className="flex items-center gap-1.5">
-        <div
-          className={`h-1.5 w-1.5 rounded-full ${
-            lock.isPermanent
-              ? "bg-[var(--positive)]"
-              : isExpired
-                ? "bg-[var(--negative)]"
-                : "bg-[var(--warning)]"
-          }`}
-        />
-        <span className="text-2xs text-[var(--content-secondary)]">
-          {lock.isPermanent
-            ? "Permanent"
-            : isExpired
-              ? "Expired"
-              : unlockDate
-                ? `Unlocks ${unlockDate.toLocaleDateString()}`
-                : "Active"}
-        </span>
+      {/* Footer */}
+      <div className="mt-auto border-t border-[var(--border)] pt-3">
+        <p className="text-xs text-[var(--content-secondary)]">
+          Unlocks:{" "}
+          {lock.isPermanent ? "Never" : unlockDate?.toLocaleDateString()}
+        </p>
       </div>
     </div>
   )
@@ -448,7 +522,7 @@ export function LockCarouselSelector<T extends LockItem>({
   const [dragStartX, setDragStartX] = useState(0)
   const [scrollStartX, setScrollStartX] = useState(0)
   const [dragDistance, setDragDistance] = useState(0)
-  const dragThreshold = 5 // Minimum pixels to consider it a drag vs click
+  const dragThreshold = 5
 
   const checkScrollability = useCallback(() => {
     const container = scrollContainerRef.current
@@ -476,7 +550,7 @@ export function LockCarouselSelector<T extends LockItem>({
     const container = scrollContainerRef.current
     if (!container) return
 
-    const cardWidth = 200 // card width + gap
+    const cardWidth = 300 // card width + gap
     const scrollAmount = direction === "left" ? -cardWidth : cardWidth
 
     container.scrollBy({
@@ -490,7 +564,6 @@ export function LockCarouselSelector<T extends LockItem>({
       setIsAnimating(true)
       onSelect(index)
 
-      // Scroll the selected card into view
       const container = scrollContainerRef.current
       if (container) {
         const cards = container.querySelectorAll("[data-carousel-card]")
@@ -516,7 +589,6 @@ export function LockCarouselSelector<T extends LockItem>({
     [onSelect],
   )
 
-  // Mouse tracking for drag-to-scroll
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const container = scrollContainerRef.current
@@ -536,7 +608,6 @@ export function LockCarouselSelector<T extends LockItem>({
   )
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Only start drag on primary mouse button
     if (e.button !== 0) return
 
     const container = scrollContainerRef.current
@@ -547,7 +618,6 @@ export function LockCarouselSelector<T extends LockItem>({
     setScrollStartX(container.scrollLeft)
     setDragDistance(0)
 
-    // Prevent text selection during drag
     e.preventDefault()
   }, [])
 
@@ -559,29 +629,25 @@ export function LockCarouselSelector<T extends LockItem>({
     setIsDragging(false)
   }, [])
 
-  // Determine if we should show the selection prompt
   const showSelectionPrompt = selectedIndex === undefined
 
   if (locks.length === 0) {
     return null
   }
 
-  // Default card renderer
   const defaultRenderCard = (lock: T, _index: number, isSelected: boolean) => {
-    // Check if it's a rich veMEZO lock
     if (
       lockType === "veMEZO" &&
       ("canVote" in lock || "usedWeight" in lock || "currentAPY" in lock)
     ) {
       return (
-        <DefaultVeMEZOCard
+        <DashboardVeMEZOCard
           lock={lock as VeMEZOLockData}
           isSelected={isSelected}
         />
       )
     }
 
-    // Check if it's a rich veBTC lock
     if (
       lockType === "veBTC" &&
       ("hasGauge" in lock ||
@@ -589,16 +655,19 @@ export function LockCarouselSelector<T extends LockItem>({
         "boostMultiplier" in lock)
     ) {
       return (
-        <DefaultVeBTCCard
+        <DashboardVeBTCCard
           lock={lock as VeBTCLockData}
           isSelected={isSelected}
         />
       )
     }
 
-    // Fallback to simple card
     return (
-      <SimpleLockCard lock={lock} lockType={lockType} isSelected={isSelected} />
+      <SimpleDashboardCard
+        lock={lock}
+        lockType={lockType}
+        isSelected={isSelected}
+      />
     )
   }
 
@@ -613,21 +682,27 @@ export function LockCarouselSelector<T extends LockItem>({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
             className={`flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(247,147,26,0.35)] bg-[rgba(247,147,26,0.15)] text-[#F7931A] ${
-              showSelectionPrompt ? "carousel-prompt-pulse" : ""
+              showSelectionPrompt ? "animate-pulse" : ""
             }`}
           >
-            <span className="text-sm font-semibold">$</span>
+            <TokenIcon
+              symbol={lockType === "veMEZO" ? "MEZO" : "BTC"}
+              size={18}
+            />
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-[var(--content-tertiary)]">
               {showSelectionPrompt ? "Choose a lock" : label}
             </p>
             <p className="text-2xs text-[var(--content-secondary)]">
-              {showSelectionPrompt ? "Select a lock to continue" : selectedLabel}
+              {showSelectionPrompt
+                ? "Select a lock to continue"
+                : selectedLabel}
             </p>
           </div>
         </div>
@@ -669,20 +744,21 @@ export function LockCarouselSelector<T extends LockItem>({
         )}
       </div>
 
+      {/* Cards */}
       <div
         ref={scrollContainerRef}
-        className={`carousel-scroll-container -mx-4 flex gap-4 px-6 pb-4 ${
+        className={`-mx-6 flex gap-4 overflow-x-auto px-6 pb-4 ${
           isDragging ? "cursor-grabbing" : "cursor-grab"
         }`}
         style={{
-          overflowX: "auto",
-          overflowY: "hidden",
           scrollSnapType: isDragging ? "none" : "x proximity",
           scrollPaddingLeft: "24px",
           scrollPaddingRight: "24px",
           scrollBehavior: isDragging ? "auto" : "smooth",
           userSelect: "none",
           WebkitUserSelect: "none",
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
         }}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
@@ -707,13 +783,12 @@ export function LockCarouselSelector<T extends LockItem>({
                 }
                 handleSelect(index)
               }}
-              className={`carousel-card flex-shrink-0 text-left ${
+              className={`flex-shrink-0 text-left outline-none ${
                 isAnimating ? "pointer-events-none" : ""
               }`}
               style={{
-                scrollSnapAlign: "center",
-                width: "240px",
-                height: "220px",
+                scrollSnapAlign: "start",
+                width: "280px",
               }}
               aria-pressed={isSelected}
             >
@@ -723,16 +798,23 @@ export function LockCarouselSelector<T extends LockItem>({
                   Root: {
                     style: {
                       height: "100%",
+                      minHeight: "240px",
                       cursor: isDragging ? "grabbing" : "pointer",
                       transition: isDragging
                         ? "none"
-                        : "box-shadow 0.2s ease-out, border-color 0.2s ease-out, transform 0.2s ease-out",
+                        : "border-color 0.15s ease, opacity 0.15s ease",
                       borderColor: isSelected ? "#F7931A" : "var(--border)",
                       borderWidth: isSelected ? "2px" : "1px",
-                      boxShadow: isSelected
-                        ? "0 0 24px rgba(247, 147, 26, 0.35), 0 10px 24px rgba(0, 0, 0, 0.35)"
-                        : "0 6px 16px rgba(0, 0, 0, 0.2)",
-                      transform: isSelected ? "translateY(-2px)" : "none",
+                    },
+                    props: {
+                      onMouseEnter: (e: React.MouseEvent<HTMLDivElement>) => {
+                        if (!isDragging) {
+                          e.currentTarget.style.opacity = "0.85"
+                        }
+                      },
+                      onMouseLeave: (e: React.MouseEvent<HTMLDivElement>) => {
+                        e.currentTarget.style.opacity = "1"
+                      },
                     },
                   },
                 }}
@@ -744,6 +826,7 @@ export function LockCarouselSelector<T extends LockItem>({
         })}
       </div>
 
+      {/* Dot indicators for mobile */}
       {locks.length > 1 && locks.length <= 6 && (
         <div className="flex justify-center gap-2 sm:hidden">
           {locks.map((lock, index) => (

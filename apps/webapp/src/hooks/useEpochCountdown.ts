@@ -56,8 +56,32 @@ export function useEpochCountdown(): EpochCountdownResult {
   }, [])
 
   const timeRemaining = useMemo(() => {
-    if (epochNext === undefined) return "..."
-    const remaining = Number(epochNext) - currentTime
+    let targetTimestamp = epochNext ? Number(epochNext) : 0
+
+    // Fallback if contract data is missing or we are on mainnet where contract read might fail
+    if (!targetTimestamp) {
+      const now = new Date()
+      // 0=Sun, 1=Mon, ..., 4=Thu
+      const today = now.getUTCDay()
+      let daysUntilThursday = 4 - today
+      if (daysUntilThursday <= 0) daysUntilThursday += 7
+
+      const target = new Date(now)
+      target.setUTCDate(now.getUTCDate() + daysUntilThursday)
+      target.setUTCHours(0, 0, 0, 0)
+
+      // If we are currently on Thursday but before midnight? No, 00:00 is start of day.
+      // If now is Thursday 01:00, target set to 00:00 is in past.
+      // daysUntilThursday would be 0.
+      // So checks:
+      if (target.getTime() <= now.getTime()) {
+        target.setUTCDate(target.getUTCDate() + 7)
+      }
+
+      targetTimestamp = Math.floor(target.getTime() / 1000)
+    }
+
+    const remaining = targetTimestamp - currentTime
     return formatTimeRemaining(Math.max(0, remaining))
   }, [epochNext, currentTime])
 

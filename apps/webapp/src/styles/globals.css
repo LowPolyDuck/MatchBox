@@ -587,6 +587,22 @@
   animation: ticker-dropdown-exit 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Navbar ticker entrance animation */
+@keyframes ticker-navbar-enter {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.ticker-navbar-enter {
+  animation: ticker-navbar-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* ============================================
    CAROUSEL SELECTOR ANIMATIONS
    Smooth scrolling and selection animations

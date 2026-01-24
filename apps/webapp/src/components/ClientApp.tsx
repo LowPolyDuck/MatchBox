@@ -16,6 +16,8 @@ const queryClient = new QueryClient()
 
 type ClientAppProps = Pick<AppProps, "Component" | "pageProps">
 
+import { Layout } from "./Layout"
+
 function ThemedApp({ Component, pageProps }: ClientAppProps) {
   const { theme } = useTheme()
   const themeObject = getThemeObject(theme)
@@ -23,7 +25,9 @@ function ThemedApp({ Component, pageProps }: ClientAppProps) {
   return (
     <ClayProvider theme={themeObject}>
       <SunsetBackground />
-      <Component {...pageProps} />
+      <Layout>
+        <Component {...pageProps} />
+      </Layout>
     </ClayProvider>
   )
 }

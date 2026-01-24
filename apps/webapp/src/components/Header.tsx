@@ -121,6 +121,8 @@ export function Header(): JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [walletDrawerOpen, setWalletDrawerOpen] = useState(false)
 
+  const isHomePage = router.pathname === "/"
+
   useEffect(() => {
     setMobileMenuOpen(false)
   }, [router.pathname])
@@ -202,7 +204,11 @@ export function Header(): JSX.Element {
 
           {/* Desktop Actions */}
           <div className="hidden items-center gap-3 md:flex">
-            <HeaderTicker />
+            {!isHomePage && (
+              <div className="ticker-navbar-enter">
+                <HeaderTicker />
+              </div>
+            )}
 
             <a
               href="https://matchbox.mallard.sh/docs"
