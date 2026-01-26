@@ -215,7 +215,7 @@ function DashboardVeMEZOCard({
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3">
         <div>
           <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Locked Amount
@@ -257,11 +257,10 @@ function DashboardVeMEZOCard({
             <span className="text-sm text-[var(--content-tertiary)]">—</span>
           ) : (
             <span
-              className={`text-sm font-medium ${
-                lock.canVote
-                  ? "text-[var(--positive)]"
-                  : "text-[var(--warning)]"
-              }`}
+              className={`text-sm font-medium ${lock.canVote
+                ? "text-[var(--positive)]"
+                : "text-[var(--warning)]"
+                }`}
             >
               {lock.canVote ? "Yes" : "Next Epoch"}
             </span>
@@ -313,11 +312,10 @@ function DashboardVeBTCCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span
-                className={`truncate text-sm font-medium ${
-                  lock.displayName
-                    ? "text-[var(--positive)]"
-                    : "text-[var(--content-primary)]"
-                }`}
+                className={`truncate text-sm font-medium ${lock.displayName
+                  ? "text-[var(--positive)]"
+                  : "text-[var(--content-primary)]"
+                  }`}
               >
                 {lock.displayName || `veBTC #${lock.tokenId.toString()}`}
               </span>
@@ -360,7 +358,7 @@ function DashboardVeBTCCard({
       </div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3">
         <div>
           <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Locked Amount
@@ -385,11 +383,10 @@ function DashboardVeBTCCard({
             Current Boost
           </p>
           <span
-            className={`font-mono text-sm font-medium tabular-nums ${
-              lock.boostMultiplier && lock.boostMultiplier > 1
-                ? "text-[var(--positive)]"
-                : "text-[var(--content-primary)]"
-            }`}
+            className={`font-mono text-sm font-medium tabular-nums ${lock.boostMultiplier && lock.boostMultiplier > 1
+              ? "text-[var(--positive)]"
+              : "text-[var(--content-primary)]"
+              }`}
           >
             {lock.boostMultiplier?.toFixed(2) ?? "1.00"}x
           </span>
@@ -399,11 +396,10 @@ function DashboardVeBTCCard({
             Gauge
           </p>
           <span
-            className={`text-sm font-medium ${
-              lock.hasGauge
-                ? "text-[var(--positive)]"
-                : "text-[var(--content-secondary)]"
-            }`}
+            className={`text-sm font-medium ${lock.hasGauge
+              ? "text-[var(--positive)]"
+              : "text-[var(--content-secondary)]"
+              }`}
           >
             {lock.hasGauge ? "Active" : "No Gauge"}
           </span>
@@ -470,7 +466,7 @@ function SimpleDashboardCard({
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3">
         <div>
           <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-secondary)]">
             Locked Amount
@@ -686,9 +682,8 @@ export function LockCarouselSelector<T extends LockItem>({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(247,147,26,0.35)] bg-[rgba(247,147,26,0.15)] text-[#F7931A] ${
-              showSelectionPrompt ? "animate-pulse" : ""
-            }`}
+            className={`flex h-8 w-8 items-center justify-center rounded-full border border-[rgba(247,147,26,0.35)] bg-[rgba(247,147,26,0.15)] text-[#F7931A] ${showSelectionPrompt ? "animate-pulse" : ""
+              }`}
           >
             <TokenIcon
               symbol={lockType === "veMEZO" ? "MEZO" : "BTC"}
@@ -717,11 +712,10 @@ export function LockCarouselSelector<T extends LockItem>({
                 type="button"
                 onClick={() => scrollTo("left")}
                 disabled={!canScrollLeft}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] transition-all ${
-                  canScrollLeft
-                    ? "cursor-pointer text-[var(--content-primary)] hover:bg-[var(--surface-secondary)]"
-                    : "cursor-not-allowed text-[var(--content-tertiary)] opacity-50"
-                }`}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] transition-all ${canScrollLeft
+                  ? "cursor-pointer text-[var(--content-primary)] hover:bg-[var(--surface-secondary)]"
+                  : "cursor-not-allowed text-[var(--content-tertiary)] opacity-50"
+                  }`}
                 aria-label="Scroll left"
               >
                 <ChevronLeftIcon size={16} />
@@ -730,11 +724,10 @@ export function LockCarouselSelector<T extends LockItem>({
                 type="button"
                 onClick={() => scrollTo("right")}
                 disabled={!canScrollRight}
-                className={`flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] transition-all ${
-                  canScrollRight
-                    ? "cursor-pointer text-[var(--content-primary)] hover:bg-[var(--surface-secondary)]"
-                    : "cursor-not-allowed text-[var(--content-tertiary)] opacity-50"
-                }`}
+                className={`flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface)] transition-all ${canScrollRight
+                  ? "cursor-pointer text-[var(--content-primary)] hover:bg-[var(--surface-secondary)]"
+                  : "cursor-not-allowed text-[var(--content-tertiary)] opacity-50"
+                  }`}
                 aria-label="Scroll right"
               >
                 <ChevronRightIcon size={16} />
@@ -747,9 +740,8 @@ export function LockCarouselSelector<T extends LockItem>({
       {/* Cards */}
       <div
         ref={scrollContainerRef}
-        className={`-mx-6 flex gap-4 overflow-x-auto px-6 pb-4 ${
-          isDragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
+        className={`-mx-6 flex gap-4 overflow-x-auto px-6 pb-4 ${isDragging ? "cursor-grabbing" : "cursor-grab"
+          }`}
         style={{
           scrollSnapType: isDragging ? "none" : "x proximity",
           scrollPaddingLeft: "24px",
@@ -783,9 +775,8 @@ export function LockCarouselSelector<T extends LockItem>({
                 }
                 handleSelect(index)
               }}
-              className={`flex-shrink-0 text-left outline-none ${
-                isAnimating ? "pointer-events-none" : ""
-              }`}
+              className={`flex-shrink-0 text-left outline-none ${isAnimating ? "pointer-events-none" : ""
+                }`}
               style={{
                 scrollSnapAlign: "start",
                 width: "280px",
@@ -817,6 +808,11 @@ export function LockCarouselSelector<T extends LockItem>({
                       },
                     },
                   },
+                  Body: {
+                    style: {
+                      height: "100%",
+                    },
+                  },
                 }}
               >
                 {cardRenderer(lock, index, isSelected)}
@@ -834,11 +830,10 @@ export function LockCarouselSelector<T extends LockItem>({
               key={lock.tokenId.toString()}
               type="button"
               onClick={() => handleSelect(index)}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                selectedIndex === index
-                  ? "w-6 bg-[#F7931A]"
-                  : "w-2 bg-[var(--border)] hover:bg-[var(--content-tertiary)]"
-              }`}
+              className={`h-1.5 rounded-full transition-all duration-300 ${selectedIndex === index
+                ? "w-6 bg-[#F7931A]"
+                : "w-2 bg-[var(--border)] hover:bg-[var(--content-tertiary)]"
+                }`}
               aria-label={`Select ${lockType} #${lock.tokenId.toString()}`}
             />
           ))}
