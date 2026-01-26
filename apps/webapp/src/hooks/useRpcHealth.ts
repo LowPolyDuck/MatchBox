@@ -21,9 +21,9 @@ export function useRpcHealth(): RpcHealthResult {
     isSuccess,
     isError,
   } = useBlockNumber({
-    watch: true,
     query: {
-      refetchInterval: 5000, // Poll every 5 seconds
+      refetchInterval: 30000, // Poll every 30 seconds
+      refetchOnWindowFocus: false,
     },
   })
 
@@ -59,7 +59,7 @@ export function useRpcHealth(): RpcHealthResult {
     }
 
     checkStatus()
-    const interval = setInterval(checkStatus, 5000)
+    const interval = setInterval(checkStatus, 30000)
 
     return () => clearInterval(interval)
   }, [lastSuccessTime, isError])
