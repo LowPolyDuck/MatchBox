@@ -1,4 +1,7 @@
-import { Layout } from "@/components/Layout"
+import {
+  LockCarouselSelector,
+  type VeBTCLockData,
+} from "@/components/LockCarouselSelector"
 import { SpringIn } from "@/components/SpringIn"
 import { TokenIcon } from "@/components/TokenIcon"
 import { TokenSelector } from "@/components/TokenSelector"
@@ -6,11 +9,16 @@ import type { SocialLinks } from "@/config/supabase"
 import { formatAPY, useGaugeAPY } from "@/hooks/useAPY"
 import { useBtcPrice } from "@/hooks/useBtcPrice"
 import {
+  useAllGaugeProfiles,
   useGaugeProfile,
   useUploadProfilePicture,
   useUpsertGaugeProfile,
 } from "@/hooks/useGaugeProfiles"
-import { useBoostGaugeForToken, useBoostInfo } from "@/hooks/useGauges"
+import {
+  useBatchGaugeData,
+  useBoostGaugeForToken,
+  useBoostInfo,
+} from "@/hooks/useGauges"
 import { useVeBTCLocks } from "@/hooks/useLocks"
 import { useMezoPrice } from "@/hooks/useMezoPrice"
 import type { Token } from "@/hooks/useTokenList"
@@ -31,7 +39,6 @@ import {
   Input,
   ParagraphMedium,
   ParagraphSmall,
-  Select,
   Skeleton,
   Tag,
   Textarea,
@@ -160,6 +167,16 @@ export default function IncentivesPage(): JSX.Element {
   const selectedLock =
     selectedLockIndex !== undefined ? veBTCLocks[selectedLockIndex] : undefined
 
+  // Batch fetch gauge data for all veBTC locks (for rich carousel cards)
+  const allTokenIds = useMemo(
+    () => veBTCLocks.map((lock) => lock.tokenId),
+    [veBTCLocks],
+  )
+  const { gaugeDataMap } = useBatchGaugeData(allTokenIds)
+
+  // Fetch all gauge profiles (for rich carousel cards)
+  const { profiles: allProfiles } = useAllGaugeProfiles()
+
   const {
     gaugeAddress,
     hasGauge,
@@ -254,6 +271,35 @@ export default function IncentivesPage(): JSX.Element {
     gaugeAddress,
     0n, // We don't need totalWeight for just showing the APY
   )
+
+  // Create enriched veBTC locks with profile and gauge data for the carousel
+  const enrichedVeBTCLocks: VeBTCLockData[] = useMemo(() => {
+    return veBTCLocks.map((lock, index) => {
+      // Get batch gauge data for this lock
+      const batchData = gaugeDataMap.get(lock.tokenId.toString())
+      const lockGaugeAddress = batchData?.gaugeAddress
+      const lockHasGauge = batchData?.hasGauge ?? false
+      const lockBoostMultiplier = batchData?.boostMultiplier ?? 1
+
+      // Get profile from the all profiles map if this lock has a gauge
+      const profile = lockGaugeAddress
+        ? allProfiles.get(lockGaugeAddress.toLowerCase())
+        : undefined
+
+      // For the selected lock, use the more detailed APY data
+      const lockAPY = index === selectedLockIndex ? apy : undefined
+
+      return {
+        ...lock,
+        profilePictureUrl: profile?.profile_picture_url ?? null,
+        displayName: profile?.display_name ?? null,
+        description: profile?.description ?? null,
+        hasGauge: lockHasGauge,
+        boostMultiplier: lockBoostMultiplier,
+        gaugeAPY: lockAPY ?? null,
+      }
+    })
+  }, [veBTCLocks, gaugeDataMap, allProfiles, selectedLockIndex, apy])
 
   // Get boostVoter address for approval (addBribes transfers tokens via boostVoter)
   const boostVoterAddress = useBoostVoterAddress()
@@ -445,739 +491,716 @@ export default function IncentivesPage(): JSX.Element {
   ])
 
   return (
-    <Layout>
-      <div className="flex flex-col gap-6">
-        {/* Page Header */}
-        <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="mb-1 text-2xl font-semibold text-[var(--content-primary)]">
-              <span className="text-[#F7931A]">$</span> gauge --manage
-            </h1>
-            <p className="text-sm text-[var(--content-secondary)]">
-              Manage your gauge profile, social links, and incentive strategy
-            </p>
-          </div>
-          {gaugeAddress && (
-            <Link href={`/gauges/${gaugeAddress}`}>
-              <Button kind="secondary" size="small">
-                <span className="flex items-center gap-1.5">
-                  View Public Page
-                  <ExternalLinkIcon size={14} />
-                </span>
-              </Button>
-            </Link>
-          )}
-        </header>
+    <div className="flex flex-col gap-6">
+      {/* Page Header */}
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="mb-1 text-2xl font-semibold text-[var(--content-primary)]">
+            <span className="text-[#F7931A]">$</span> gauge --manage
+          </h1>
+          <p className="text-sm text-[var(--content-secondary)]">
+            Manage your gauge profile, social links, and incentive strategy
+          </p>
+        </div>
+        {gaugeAddress && (
+          <Link href={`/gauges/${gaugeAddress}`}>
+            <Button kind="secondary" size="small">
+              <span className="flex items-center gap-1.5">
+                View Public Page
+                <ExternalLinkIcon size={14} />
+              </span>
+            </Button>
+          </Link>
+        )}
+      </header>
 
-        {!isConnected ? (
+      {!isConnected ? (
+        <SpringIn delay={0} variant="card">
+          <Card withBorder overrides={{}}>
+            <div className="p-12 text-center">
+              <ParagraphMedium color="var(--content-secondary)">
+                Connect your wallet to manage your gauge
+              </ParagraphMedium>
+            </div>
+          </Card>
+        </SpringIn>
+      ) : isLoading ? (
+        <div className="flex flex-col gap-4">
+          <Skeleton width="100%" height="150px" animation />
+          <Skeleton width="100%" height="150px" animation />
+        </div>
+      ) : veBTCLocks.length === 0 ? (
+        <SpringIn delay={0} variant="card">
+          <Card withBorder overrides={{}}>
+            <div className="p-12 text-center">
+              <ParagraphMedium color="var(--content-secondary)">
+                You don&apos;t have any veBTC locks. Lock BTC to get veBTC and
+                create a gauge.
+              </ParagraphMedium>
+            </div>
+          </Card>
+        </SpringIn>
+      ) : (
+        <>
+          {/* veBTC Lock Selector Carousel */}
           <SpringIn delay={0} variant="card">
             <Card withBorder overrides={{}}>
-              <div className="p-12 text-center">
-                <ParagraphMedium color="var(--content-secondary)">
-                  Connect your wallet to manage your gauge
-                </ParagraphMedium>
-              </div>
-            </Card>
-          </SpringIn>
-        ) : isLoading ? (
-          <div className="flex flex-col gap-4">
-            <Skeleton width="100%" height="150px" animation />
-            <Skeleton width="100%" height="150px" animation />
-          </div>
-        ) : veBTCLocks.length === 0 ? (
-          <SpringIn delay={0} variant="card">
-            <Card withBorder overrides={{}}>
-              <div className="p-12 text-center">
-                <ParagraphMedium color="var(--content-secondary)">
-                  You don&apos;t have any veBTC locks. Lock BTC to get veBTC and
-                  create a gauge.
-                </ParagraphMedium>
-              </div>
-            </Card>
-          </SpringIn>
-        ) : (
-          <>
-            {/* veBTC Lock Selector */}
-            <SpringIn delay={0} variant="card">
-              <Card withBorder overrides={{}}>
-                <div className="py-4">
-                  <div className="mb-4 flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-[#F7931A]" />
-                    <span className="text-xs font-medium uppercase tracking-wider text-[var(--content-tertiary)]">
-                      Select Gauge
-                    </span>
-                  </div>
-                  <Select
-                    options={veBTCLocks.map((lock, i) => ({
-                      label: `veBTC #${lock.tokenId.toString()} - ${formatUnits(lock.amount, 18).slice(0, 8)} BTC locked`,
-                      id: i.toString(),
-                    }))}
-                    value={
-                      selectedLockIndex !== undefined
-                        ? [{ id: selectedLockIndex.toString() }]
-                        : []
-                    }
-                    onChange={(params) => {
-                      const selected = params.value[0]
-                      setSelectedLockIndex(
-                        selected ? Number(selected.id) : undefined,
-                      )
-                    }}
-                    placeholder="Select your veBTC lock to manage"
-                  />
+              <div className="py-4">
+                <LockCarouselSelector
+                  locks={enrichedVeBTCLocks}
+                  selectedIndex={selectedLockIndex}
+                  onSelect={setSelectedLockIndex}
+                  lockType="veBTC"
+                  label="Select Gauge"
+                />
 
-                  {selectedLock && (
-                    <div className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-[var(--surface-secondary)] p-4 sm:grid-cols-4">
-                      <div>
-                        <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                          Locked Amount
-                        </p>
-                        <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
-                          {formatUnits(selectedLock.amount, 18).slice(0, 10)}{" "}
-                          BTC
-                        </p>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                          Voting Power
-                        </p>
-                        <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
-                          {formatUnits(selectedLock.votingPower, 18).slice(
-                            0,
-                            10,
-                          )}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                          Current Boost
-                        </p>
-                        <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
-                          {boostMultiplier.toFixed(2)}x
-                        </p>
-                      </div>
-                      <div>
-                        <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                          Gauge Status
-                        </p>
-                        {hasGauge ? (
-                          <Tag color="green" closeable={false}>
-                            Active
-                          </Tag>
-                        ) : (
-                          <Tag color="yellow" closeable={false}>
-                            Not Created
-                          </Tag>
-                        )}
-                      </div>
+                {selectedLock && (
+                  <div className="mt-4 grid grid-cols-2 gap-3 rounded-lg bg-[var(--surface-secondary)] p-4 sm:grid-cols-4">
+                    <div>
+                      <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                        Locked Amount
+                      </p>
+                      <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+                        {formatUnits(selectedLock.amount, 18).slice(0, 10)}{" "}
+                        BTC
+                      </p>
                     </div>
-                  )}
-                </div>
-              </Card>
-            </SpringIn>
-
-            {selectedLock &&
-              (!hasGauge && !isLoadingGauge ? (
-                <SpringIn delay={1} variant="card">
-                  <Card withBorder overrides={{}}>
-                    <div className="py-8 text-center">
-                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(247,147,26,0.1)]">
-                        <span className="text-2xl">🔥</span>
-                      </div>
-                      <h3 className="mb-2 text-lg font-semibold text-[var(--content-primary)]">
-                        Create Your Gauge
-                      </h3>
-                      <ParagraphMedium
-                        color="var(--content-secondary)"
-                        marginBottom="scale500"
-                      >
-                        Create a boost gauge for this veBTC lock to start
-                        receiving veMEZO votes and boost your voting power.
-                      </ParagraphMedium>
-                      <Button
-                        kind="primary"
-                        onClick={handleCreateGauge}
-                        isLoading={isCreating || isConfirmingCreate}
-                      >
-                        Create Boost Gauge
-                      </Button>
-                      {createError && (
-                        <ParagraphSmall
-                          color="var(--negative)"
-                          marginTop="scale300"
-                        >
-                          Error: {createError.message}
-                        </ParagraphSmall>
+                    <div>
+                      <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                        Voting Power
+                      </p>
+                      <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+                        {formatUnits(selectedLock.votingPower, 18).slice(
+                          0,
+                          10,
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                        Current Boost
+                      </p>
+                      <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+                        {boostMultiplier.toFixed(2)}x
+                      </p>
+                    </div>
+                    <div>
+                      <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                        Gauge Status
+                      </p>
+                      {hasGauge ? (
+                        <Tag color="green" closeable={false}>
+                          Active
+                        </Tag>
+                      ) : (
+                        <Tag color="yellow" closeable={false}>
+                          Not Created
+                        </Tag>
                       )}
                     </div>
-                  </Card>
-                </SpringIn>
-              ) : (
-                <>
-                  {/* Tab Navigation */}
-                  <SpringIn delay={1} variant="card">
-                    <div className="flex gap-1 rounded-lg bg-[var(--surface-secondary)] p-1">
-                      {(
-                        [
-                          { id: "profile", label: "Profile & Links" },
-                          { id: "incentives", label: "Incentives" },
-                          { id: "analytics", label: "Analytics" },
-                        ] as const
-                      ).map((tab) => (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setActiveTab(tab.id)}
-                          className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${
-                            activeTab === tab.id
-                              ? "bg-[var(--surface)] text-[var(--content-primary)] shadow-sm"
-                              : "text-[var(--content-secondary)] hover:text-[var(--content-primary)]"
-                          }`}
-                        >
-                          {tab.label}
-                        </button>
-                      ))}
+                  </div>
+                )}
+              </div>
+            </Card>
+          </SpringIn>
+
+          {selectedLock &&
+            (!hasGauge && !isLoadingGauge ? (
+              <SpringIn delay={1} variant="card">
+                <Card withBorder overrides={{}}>
+                  <div className="py-8 text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(247,147,26,0.1)]">
+                      <span className="text-2xl">🔥</span>
                     </div>
-                  </SpringIn>
+                    <h3 className="mb-2 text-lg font-semibold text-[var(--content-primary)]">
+                      Create Your Gauge
+                    </h3>
+                    <ParagraphMedium
+                      color="var(--content-secondary)"
+                      marginBottom="scale500"
+                    >
+                      Create a boost gauge for this veBTC lock to start
+                      receiving veMEZO votes and boost your voting power.
+                    </ParagraphMedium>
+                    <Button
+                      kind="primary"
+                      onClick={handleCreateGauge}
+                      isLoading={isCreating || isConfirmingCreate}
+                    >
+                      Create Boost Gauge
+                    </Button>
+                    {createError && (
+                      <ParagraphSmall
+                        color="var(--negative)"
+                        marginTop="scale300"
+                      >
+                        Error: {createError.message}
+                      </ParagraphSmall>
+                    )}
+                  </div>
+                </Card>
+              </SpringIn>
+            ) : (
+              <>
+                {/* Tab Navigation */}
+                <SpringIn delay={1} variant="card">
+                  <div className="flex gap-1 rounded-lg bg-[var(--surface-secondary)] p-1">
+                    {(
+                      [
+                        { id: "profile", label: "Profile & Links" },
+                        { id: "incentives", label: "Incentives" },
+                        { id: "analytics", label: "Analytics" },
+                      ] as const
+                    ).map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`flex-1 rounded-md px-4 py-2.5 text-sm font-medium transition-all ${activeTab === tab.id
+                            ? "bg-[var(--surface)] text-[var(--content-primary)] shadow-sm"
+                            : "text-[var(--content-secondary)] hover:text-[var(--content-primary)]"
+                          }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </SpringIn>
 
-                  {/* Profile Tab */}
-                  {activeTab === "profile" && (
-                    <SpringIn delay={2} variant="card">
-                      <Card withBorder overrides={{}}>
-                        <div className="flex flex-col gap-6 py-4">
-                          {/* Basic Info Section */}
-                          <div>
-                            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
-                              <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
-                                1
-                              </span>
-                              Basic Information
-                            </h3>
+                {/* Profile Tab */}
+                {activeTab === "profile" && (
+                  <SpringIn delay={2} variant="card">
+                    <Card withBorder overrides={{}}>
+                      <div className="flex flex-col gap-6 py-4">
+                        {/* Basic Info Section */}
+                        <div>
+                          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
+                            <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
+                              1
+                            </span>
+                            Basic Information
+                          </h3>
 
-                            {isLoadingProfile ? (
-                              <Skeleton width="100%" height="200px" animation />
-                            ) : (
-                              <div className="grid gap-4 md:grid-cols-2">
-                                {/* Profile Picture */}
-                                <div className="md:col-span-2">
-                                  <p className="mb-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                    Profile Picture
-                                  </p>
-                                  <div className="flex items-center gap-4">
-                                    <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[var(--border)] bg-[var(--surface-secondary)]">
-                                      {profilePicturePreview ? (
-                                        <img
-                                          src={profilePicturePreview}
-                                          alt="Gauge profile"
-                                          className="h-full w-full object-cover"
-                                        />
-                                      ) : (
-                                        <span className="text-xs text-[var(--content-secondary)]">
-                                          No image
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div>
-                                      <input
-                                        type="file"
-                                        ref={fileInputRef}
-                                        accept="image/*"
-                                        onChange={handleFileSelect}
-                                        className="hidden"
+                          {isLoadingProfile ? (
+                            <Skeleton width="100%" height="200px" animation />
+                          ) : (
+                            <div className="grid gap-4 md:grid-cols-2">
+                              {/* Profile Picture */}
+                              <div className="md:col-span-2">
+                                <p className="mb-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                  Profile Picture
+                                </p>
+                                <div className="flex items-center gap-4">
+                                  <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[var(--border)] bg-[var(--surface-secondary)]">
+                                    {profilePicturePreview ? (
+                                      <img
+                                        src={profilePicturePreview}
+                                        alt="Gauge profile"
+                                        className="h-full w-full object-cover"
                                       />
-                                      <Button
-                                        kind="secondary"
-                                        size="small"
-                                        onClick={() =>
-                                          fileInputRef.current?.click()
-                                        }
-                                      >
-                                        {profilePicturePreview
-                                          ? "Change Picture"
-                                          : "Upload Picture"}
-                                      </Button>
-                                      <ParagraphSmall
-                                        color="var(--content-secondary)"
-                                        marginTop="scale200"
-                                      >
-                                        Square image, at least 200x200px
-                                      </ParagraphSmall>
-                                    </div>
+                                    ) : (
+                                      <span className="text-xs text-[var(--content-secondary)]">
+                                        No image
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <input
+                                      type="file"
+                                      ref={fileInputRef}
+                                      accept="image/*"
+                                      onChange={handleFileSelect}
+                                      className="hidden"
+                                    />
+                                    <Button
+                                      kind="secondary"
+                                      size="small"
+                                      onClick={() =>
+                                        fileInputRef.current?.click()
+                                      }
+                                    >
+                                      {profilePicturePreview
+                                        ? "Change Picture"
+                                        : "Upload Picture"}
+                                    </Button>
+                                    <ParagraphSmall
+                                      color="var(--content-secondary)"
+                                      marginTop="scale200"
+                                    >
+                                      Square image, at least 200x200px
+                                    </ParagraphSmall>
                                   </div>
                                 </div>
+                              </div>
 
-                                {/* Display Name */}
-                                <div>
-                                  <label
-                                    htmlFor="gauge-display-name"
-                                    className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
-                                  >
-                                    Display Name
-                                  </label>
-                                  <Input
-                                    id="gauge-display-name"
-                                    value={profileDisplayName}
-                                    onChange={(e) =>
-                                      setProfileDisplayName(e.target.value)
-                                    }
-                                    placeholder={`veBTC #${selectedLock?.tokenId?.toString() ?? ""}`}
-                                  />
-                                </div>
+                              {/* Display Name */}
+                              <div>
+                                <label
+                                  htmlFor="gauge-display-name"
+                                  className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
+                                >
+                                  Display Name
+                                </label>
+                                <Input
+                                  id="gauge-display-name"
+                                  value={profileDisplayName}
+                                  onChange={(e) =>
+                                    setProfileDisplayName(e.target.value)
+                                  }
+                                  placeholder={`veBTC #${selectedLock?.tokenId?.toString() ?? ""}`}
+                                />
+                              </div>
 
-                                {/* Website */}
-                                <div>
-                                  <label
-                                    htmlFor="gauge-website"
-                                    className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
-                                  >
-                                    Website URL
-                                  </label>
-                                  <Input
-                                    id="gauge-website"
-                                    value={websiteUrl}
-                                    onChange={(e) =>
-                                      setWebsiteUrl(e.target.value)
-                                    }
-                                    placeholder="https://yourproject.com"
-                                  />
-                                </div>
+                              {/* Website */}
+                              <div>
+                                <label
+                                  htmlFor="gauge-website"
+                                  className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
+                                >
+                                  Website URL
+                                </label>
+                                <Input
+                                  id="gauge-website"
+                                  value={websiteUrl}
+                                  onChange={(e) =>
+                                    setWebsiteUrl(e.target.value)
+                                  }
+                                  placeholder="https://yourproject.com"
+                                />
+                              </div>
 
-                                {/* Description */}
-                                <div className="md:col-span-2">
-                                  <label
-                                    htmlFor="gauge-description"
-                                    className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
-                                  >
-                                    Description
-                                  </label>
-                                  <Textarea
-                                    id="gauge-description"
-                                    value={profileDescription}
-                                    onChange={(e) =>
-                                      setProfileDescription(e.target.value)
-                                    }
-                                    placeholder="Tell voters about your gauge. What makes it special?"
-                                    overrides={{
-                                      Root: {
-                                        style: {
-                                          minHeight: "80px",
-                                        },
+                              {/* Description */}
+                              <div className="md:col-span-2">
+                                <label
+                                  htmlFor="gauge-description"
+                                  className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
+                                >
+                                  Description
+                                </label>
+                                <Textarea
+                                  id="gauge-description"
+                                  value={profileDescription}
+                                  onChange={(e) =>
+                                    setProfileDescription(e.target.value)
+                                  }
+                                  placeholder="Tell voters about your gauge. What makes it special?"
+                                  overrides={{
+                                    Root: {
+                                      style: {
+                                        minHeight: "80px",
                                       },
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Social Links Section */}
-                          <div>
-                            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
-                              <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
-                                2
-                              </span>
-                              Social Links
-                            </h3>
-
-                            <div className="grid gap-4 sm:grid-cols-2">
-                              <div>
-                                <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                  <TwitterIcon size={14} />
-                                  Twitter / X
-                                </label>
-                                <Input
-                                  value={twitterUrl}
-                                  onChange={(e) =>
-                                    setTwitterUrl(e.target.value)
-                                  }
-                                  placeholder="https://twitter.com/yourproject"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                  <DiscordIcon size={14} />
-                                  Discord
-                                </label>
-                                <Input
-                                  value={discordUrl}
-                                  onChange={(e) =>
-                                    setDiscordUrl(e.target.value)
-                                  }
-                                  placeholder="https://discord.gg/invite"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                  <TelegramIcon size={14} />
-                                  Telegram
-                                </label>
-                                <Input
-                                  value={telegramUrl}
-                                  onChange={(e) =>
-                                    setTelegramUrl(e.target.value)
-                                  }
-                                  placeholder="https://t.me/yourproject"
-                                />
-                              </div>
-
-                              <div>
-                                <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                  <GithubIcon size={14} />
-                                  GitHub
-                                </label>
-                                <Input
-                                  value={githubUrl}
-                                  onChange={(e) => setGithubUrl(e.target.value)}
-                                  placeholder="https://github.com/yourproject"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Strategy Section */}
-                          <div>
-                            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
-                              <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
-                                3
-                              </span>
-                              Strategy & Goals
-                            </h3>
-
-                            <div className="grid gap-4">
-                              <div>
-                                <label
-                                  htmlFor="incentive-strategy"
-                                  className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
-                                >
-                                  Incentive Strategy
-                                </label>
-                                <Textarea
-                                  id="incentive-strategy"
-                                  value={incentiveStrategy}
-                                  onChange={(e) =>
-                                    setIncentiveStrategy(e.target.value)
-                                  }
-                                  placeholder="Describe how you plan to incentivize voters. What rewards do you offer? How often? What's your target APY?"
-                                  overrides={{
-                                    Root: { style: { minHeight: "100px" } },
-                                  }}
-                                />
-                              </div>
-
-                              <div>
-                                <label
-                                  htmlFor="voting-strategy"
-                                  className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
-                                >
-                                  Voting Strategy & Goals
-                                </label>
-                                <Textarea
-                                  id="voting-strategy"
-                                  value={votingStrategy}
-                                  onChange={(e) =>
-                                    setVotingStrategy(e.target.value)
-                                  }
-                                  placeholder="Explain your voting goals. What boost level are you targeting? How will you use the boosted voting power?"
-                                  overrides={{
-                                    Root: { style: { minHeight: "100px" } },
+                                    },
                                   }}
                                 />
                               </div>
                             </div>
-                          </div>
-
-                          {/* Tags Section */}
-                          <div>
-                            <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
-                              <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
-                                4
-                              </span>
-                              Tags
-                            </h3>
-
-                            <p className="mb-3 text-xs text-[var(--content-secondary)]">
-                              Select tags that describe your project
-                            </p>
-
-                            <div className="flex flex-wrap gap-2">
-                              {availableTags.map((tag) => (
-                                <button
-                                  key={tag}
-                                  type="button"
-                                  onClick={() => toggleTag(tag)}
-                                  className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${
-                                    selectedTags.includes(tag)
-                                      ? "border-[#F7931A] bg-[rgba(247,147,26,0.15)] text-[#F7931A]"
-                                      : "border-[var(--border)] text-[var(--content-secondary)] hover:border-[var(--content-tertiary)]"
-                                  }`}
-                                >
-                                  {tag}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Save Button */}
-                          <div className="flex items-center justify-between border-t border-[var(--border)] pt-4">
-                            <div>
-                              {hasProfileChanges && (
-                                <span className="text-xs text-[var(--warning)]">
-                                  You have unsaved changes
-                                </span>
-                              )}
-                            </div>
-                            <Button
-                              kind="primary"
-                              onClick={handleSaveProfile}
-                              isLoading={isSavingProfile || isUploadingPicture}
-                              disabled={!hasProfileChanges}
-                            >
-                              Save Profile
-                            </Button>
-                          </div>
+                          )}
                         </div>
-                      </Card>
-                    </SpringIn>
-                  )}
 
-                  {/* Incentives Tab */}
-                  {activeTab === "incentives" && (
-                    <>
-                      {/* Current Incentives Overview */}
-                      <SpringIn delay={2} variant="card">
-                        <Card
-                          title="Current Epoch Incentives"
-                          withBorder
-                          overrides={{}}
-                        >
-                          <div className="py-4">
-                            {isLoadingIncentives ? (
-                              <Skeleton width="100%" height="100px" animation />
-                            ) : incentives.length === 0 ? (
-                              <div className="rounded-lg bg-[var(--surface-secondary)] p-6 text-center">
-                                <p className="mb-2 text-sm text-[var(--content-secondary)]">
-                                  No incentives added for this epoch yet
-                                </p>
-                                <p className="text-xs text-[var(--content-tertiary)]">
-                                  Add incentives below to attract veMEZO voters
-                                </p>
-                              </div>
-                            ) : (
-                              <>
-                                <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                                  <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
-                                    <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                      Total Value
-                                    </p>
-                                    <p className="font-mono text-lg font-semibold text-[var(--content-primary)]">
-                                      ${totalIncentivesUSD.toFixed(2)}
-                                    </p>
-                                  </div>
-                                  <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
-                                    <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                      Tokens
-                                    </p>
-                                    <p className="font-mono text-lg font-semibold text-[var(--content-primary)]">
-                                      {incentives.length}
-                                    </p>
-                                  </div>
-                                  <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
-                                    <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                      Est. APY
-                                    </p>
-                                    <p
-                                      className={`font-mono text-lg font-semibold ${
-                                        apy && apy > 0
-                                          ? "text-[var(--positive)]"
-                                          : "text-[var(--content-primary)]"
-                                      }`}
-                                    >
-                                      {formatAPY(apy)}
-                                    </p>
-                                  </div>
-                                </div>
+                        {/* Social Links Section */}
+                        <div>
+                          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
+                            <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
+                              2
+                            </span>
+                            Social Links
+                          </h3>
 
-                                <div className="space-y-2">
-                                  {incentivesWithUSD.map((incentive) => (
-                                    <div
-                                      key={incentive.tokenAddress}
-                                      className="flex items-center justify-between rounded-lg border border-[var(--border)] p-3"
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        <TokenIcon
-                                          symbol={incentive.symbol}
-                                          size={28}
-                                        />
-                                        <div>
-                                          <p className="text-sm font-medium text-[var(--content-primary)]">
-                                            {incentive.symbol}
-                                          </p>
-                                          <p className="text-2xs text-[var(--content-secondary)]">
-                                            {formatUsdValue(incentive.usdValue)}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
-                                        {formatUnits(
-                                          incentive.amount,
-                                          incentive.decimals,
-                                        ).slice(0, 12)}
-                                      </p>
-                                    </div>
-                                  ))}
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </Card>
-                      </SpringIn>
-
-                      {/* Add Incentives Form */}
-                      <SpringIn delay={3} variant="card">
-                        <Card title="Add Incentives" withBorder overrides={{}}>
-                          <div className="flex flex-col gap-4 py-4">
-                            <p className="text-sm text-[var(--content-secondary)]">
-                              Add token incentives to attract veMEZO holders to
-                              vote for your gauge.
-                            </p>
-
-                            <TokenSelector
-                              label="Incentive Token"
-                              value={incentiveToken}
-                              onChange={setIncentiveToken}
-                              placeholder="Select a token"
-                            />
-                            {incentiveToken && isTokenAllowlisted === false && (
-                              <div className="rounded-lg border border-[var(--negative)] bg-[rgba(239,68,68,0.1)] p-3">
-                                <ParagraphSmall color="var(--negative)">
-                                  This token is not allowlisted for incentives.
-                                  Only allowlisted tokens can be used as bribes.
-                                </ParagraphSmall>
-                              </div>
-                            )}
+                          <div className="grid gap-4 sm:grid-cols-2">
                             <div>
-                              <label
-                                htmlFor="incentive-amount"
-                                className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
-                              >
-                                Amount
-                                {incentiveToken &&
-                                  ` (${incentiveToken.symbol})`}
+                              <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                <TwitterIcon size={14} />
+                                Twitter / X
                               </label>
                               <Input
-                                id="incentive-amount"
-                                value={incentiveAmount}
+                                value={twitterUrl}
                                 onChange={(e) =>
-                                  setIncentiveAmount(e.target.value)
+                                  setTwitterUrl(e.target.value)
                                 }
-                                placeholder="0.0"
-                                type="number"
+                                placeholder="https://twitter.com/yourproject"
                               />
                             </div>
-                            {needsApproval ? (
-                              <Button
-                                kind="primary"
-                                onClick={handleApprove}
-                                isLoading={isApproving || isConfirmingApproval}
-                                disabled={
-                                  !incentiveToken ||
-                                  !incentiveAmount ||
-                                  !boostVoterAddress ||
-                                  isTokenAllowlisted === false
-                                }
-                              >
-                                Approve {incentiveToken?.symbol}
-                              </Button>
-                            ) : (
-                              <Button
-                                kind="primary"
-                                onClick={handleAddIncentives}
-                                isLoading={
-                                  isAddingIncentives || isConfirmingIncentives
-                                }
-                                disabled={
-                                  !incentiveToken ||
-                                  !incentiveAmount ||
-                                  parsedAmount === 0n ||
-                                  isTokenAllowlisted === false
-                                }
-                              >
-                                Add Incentives
-                              </Button>
-                            )}
-                            {addIncentivesError && (
-                              <ParagraphSmall
-                                color="var(--negative)"
-                                marginTop="scale300"
-                              >
-                                Error: {addIncentivesError.message}
-                              </ParagraphSmall>
-                            )}
-                          </div>
-                        </Card>
-                      </SpringIn>
-                    </>
-                  )}
 
-                  {/* Analytics Tab */}
-                  {activeTab === "analytics" && (
-                    <SpringIn delay={2} variant="card">
-                      <Card title="Gauge Analytics" withBorder overrides={{}}>
-                        <div className="py-8 text-center">
-                          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-secondary)]">
-                            <span className="text-2xl">📊</span>
-                          </div>
-                          <h3 className="mb-2 text-lg font-semibold text-[var(--content-primary)]">
-                            Historical Analytics Coming Soon
-                          </h3>
-                          <p className="mx-auto max-w-md text-sm text-[var(--content-secondary)]">
-                            Track your gauge&apos;s performance over time,
-                            including vote trends, boost history, and incentive
-                            efficiency.
-                          </p>
-                          <div className="mx-auto mt-6 grid max-w-lg grid-cols-3 gap-4">
-                            <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
-                              <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                Current Boost
-                              </p>
-                              <p className="font-mono text-xl font-semibold text-[var(--content-primary)]">
-                                {boostMultiplier.toFixed(2)}x
-                              </p>
+                            <div>
+                              <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                <DiscordIcon size={14} />
+                                Discord
+                              </label>
+                              <Input
+                                value={discordUrl}
+                                onChange={(e) =>
+                                  setDiscordUrl(e.target.value)
+                                }
+                                placeholder="https://discord.gg/invite"
+                              />
                             </div>
-                            <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
-                              <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                Incentives
-                              </p>
-                              <p className="font-mono text-xl font-semibold text-[var(--content-primary)]">
-                                ${totalIncentivesUSD.toFixed(0)}
-                              </p>
+
+                            <div>
+                              <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                <TelegramIcon size={14} />
+                                Telegram
+                              </label>
+                              <Input
+                                value={telegramUrl}
+                                onChange={(e) =>
+                                  setTelegramUrl(e.target.value)
+                                }
+                                placeholder="https://t.me/yourproject"
+                              />
                             </div>
-                            <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
-                              <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
-                                APY
-                              </p>
-                              <p
-                                className={`font-mono text-xl font-semibold ${
-                                  apy && apy > 0
-                                    ? "text-[var(--positive)]"
-                                    : "text-[var(--content-primary)]"
-                                }`}
-                              >
-                                {formatAPY(apy)}
-                              </p>
+
+                            <div>
+                              <label className="mb-1 flex items-center gap-2 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                <GithubIcon size={14} />
+                                GitHub
+                              </label>
+                              <Input
+                                value={githubUrl}
+                                onChange={(e) => setGithubUrl(e.target.value)}
+                                placeholder="https://github.com/yourproject"
+                              />
                             </div>
                           </div>
                         </div>
+
+                        {/* Strategy Section */}
+                        <div>
+                          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
+                            <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
+                              3
+                            </span>
+                            Strategy & Goals
+                          </h3>
+
+                          <div className="grid gap-4">
+                            <div>
+                              <label
+                                htmlFor="incentive-strategy"
+                                className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
+                              >
+                                Incentive Strategy
+                              </label>
+                              <Textarea
+                                id="incentive-strategy"
+                                value={incentiveStrategy}
+                                onChange={(e) =>
+                                  setIncentiveStrategy(e.target.value)
+                                }
+                                placeholder="Describe how you plan to incentivize voters. What rewards do you offer? How often? What's your target APY?"
+                                overrides={{
+                                  Root: { style: { minHeight: "100px" } },
+                                }}
+                              />
+                            </div>
+
+                            <div>
+                              <label
+                                htmlFor="voting-strategy"
+                                className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
+                              >
+                                Voting Strategy & Goals
+                              </label>
+                              <Textarea
+                                id="voting-strategy"
+                                value={votingStrategy}
+                                onChange={(e) =>
+                                  setVotingStrategy(e.target.value)
+                                }
+                                placeholder="Explain your voting goals. What boost level are you targeting? How will you use the boosted voting power?"
+                                overrides={{
+                                  Root: { style: { minHeight: "100px" } },
+                                }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Tags Section */}
+                        <div>
+                          <h3 className="mb-4 flex items-center gap-2 text-sm font-semibold text-[var(--content-primary)]">
+                            <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(247,147,26,0.15)] text-xs text-[#F7931A]">
+                              4
+                            </span>
+                            Tags
+                          </h3>
+
+                          <p className="mb-3 text-xs text-[var(--content-secondary)]">
+                            Select tags that describe your project
+                          </p>
+
+                          <div className="flex flex-wrap gap-2">
+                            {availableTags.map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => toggleTag(tag)}
+                                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-all ${selectedTags.includes(tag)
+                                    ? "border-[#F7931A] bg-[rgba(247,147,26,0.15)] text-[#F7931A]"
+                                    : "border-[var(--border)] text-[var(--content-secondary)] hover:border-[var(--content-tertiary)]"
+                                  }`}
+                              >
+                                {tag}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Save Button */}
+                        <div className="flex items-center justify-between border-t border-[var(--border)] pt-4">
+                          <div>
+                            {hasProfileChanges && (
+                              <span className="text-xs text-[var(--warning)]">
+                                You have unsaved changes
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            kind="primary"
+                            onClick={handleSaveProfile}
+                            isLoading={isSavingProfile || isUploadingPicture}
+                            disabled={!hasProfileChanges}
+                          >
+                            Save Profile
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  </SpringIn>
+                )}
+
+                {/* Incentives Tab */}
+                {activeTab === "incentives" && (
+                  <>
+                    {/* Current Incentives Overview */}
+                    <SpringIn delay={2} variant="card">
+                      <Card
+                        title="Current Epoch Incentives"
+                        withBorder
+                        overrides={{}}
+                      >
+                        <div className="py-4">
+                          {isLoadingIncentives ? (
+                            <Skeleton width="100%" height="100px" animation />
+                          ) : incentives.length === 0 ? (
+                            <div className="rounded-lg bg-[var(--surface-secondary)] p-6 text-center">
+                              <p className="mb-2 text-sm text-[var(--content-secondary)]">
+                                No incentives added for this epoch yet
+                              </p>
+                              <p className="text-xs text-[var(--content-tertiary)]">
+                                Add incentives below to attract veMEZO voters
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="mb-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                                <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
+                                  <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                    Total Value
+                                  </p>
+                                  <p className="font-mono text-lg font-semibold text-[var(--content-primary)]">
+                                    ${totalIncentivesUSD.toFixed(2)}
+                                  </p>
+                                </div>
+                                <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
+                                  <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                    Tokens
+                                  </p>
+                                  <p className="font-mono text-lg font-semibold text-[var(--content-primary)]">
+                                    {incentives.length}
+                                  </p>
+                                </div>
+                                <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
+                                  <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                                    Est. APY
+                                  </p>
+                                  <p
+                                    className={`font-mono text-lg font-semibold ${apy && apy > 0
+                                        ? "text-[var(--positive)]"
+                                        : "text-[var(--content-primary)]"
+                                      }`}
+                                  >
+                                    {formatAPY(apy)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                {incentivesWithUSD.map((incentive) => (
+                                  <div
+                                    key={incentive.tokenAddress}
+                                    className="flex items-center justify-between rounded-lg border border-[var(--border)] p-3"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <TokenIcon
+                                        symbol={incentive.symbol}
+                                        size={28}
+                                      />
+                                      <div>
+                                        <p className="text-sm font-medium text-[var(--content-primary)]">
+                                          {incentive.symbol}
+                                        </p>
+                                        <p className="text-2xs text-[var(--content-secondary)]">
+                                          {formatUsdValue(incentive.usdValue)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <p className="font-mono text-sm font-medium tabular-nums text-[var(--content-primary)]">
+                                      {formatUnits(
+                                        incentive.amount,
+                                        incentive.decimals,
+                                      ).slice(0, 12)}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </Card>
                     </SpringIn>
-                  )}
-                </>
-              ))}
-          </>
-        )}
-      </div>
-    </Layout>
+
+                    {/* Add Incentives Form */}
+                    <SpringIn delay={3} variant="card">
+                      <Card title="Add Incentives" withBorder overrides={{}}>
+                        <div className="flex flex-col gap-4 py-4">
+                          <p className="text-sm text-[var(--content-secondary)]">
+                            Add token incentives to attract veMEZO holders to
+                            vote for your gauge.
+                          </p>
+
+                          <TokenSelector
+                            label="Incentive Token"
+                            value={incentiveToken}
+                            onChange={setIncentiveToken}
+                            placeholder="Select a token"
+                          />
+                          {incentiveToken && isTokenAllowlisted === false && (
+                            <div className="rounded-lg border border-[var(--negative)] bg-[rgba(239,68,68,0.1)] p-3">
+                              <ParagraphSmall color="var(--negative)">
+                                This token is not allowlisted for incentives.
+                                Only allowlisted tokens can be used as bribes.
+                              </ParagraphSmall>
+                            </div>
+                          )}
+                          <div>
+                            <label
+                              htmlFor="incentive-amount"
+                              className="mb-1 block text-2xs uppercase tracking-wider text-[var(--content-tertiary)]"
+                            >
+                              Amount
+                              {incentiveToken &&
+                                ` (${incentiveToken.symbol})`}
+                            </label>
+                            <Input
+                              id="incentive-amount"
+                              value={incentiveAmount}
+                              onChange={(e) =>
+                                setIncentiveAmount(e.target.value)
+                              }
+                              placeholder="0.0"
+                              type="number"
+                            />
+                          </div>
+                          {needsApproval ? (
+                            <Button
+                              kind="primary"
+                              onClick={handleApprove}
+                              isLoading={isApproving || isConfirmingApproval}
+                              disabled={
+                                !incentiveToken ||
+                                !incentiveAmount ||
+                                !boostVoterAddress ||
+                                isTokenAllowlisted === false
+                              }
+                            >
+                              Approve {incentiveToken?.symbol}
+                            </Button>
+                          ) : (
+                            <Button
+                              kind="primary"
+                              onClick={handleAddIncentives}
+                              isLoading={
+                                isAddingIncentives || isConfirmingIncentives
+                              }
+                              disabled={
+                                !incentiveToken ||
+                                !incentiveAmount ||
+                                parsedAmount === 0n ||
+                                isTokenAllowlisted === false
+                              }
+                            >
+                              Add Incentives
+                            </Button>
+                          )}
+                          {addIncentivesError && (
+                            <ParagraphSmall
+                              color="var(--negative)"
+                              marginTop="scale300"
+                            >
+                              Error: {addIncentivesError.message}
+                            </ParagraphSmall>
+                          )}
+                        </div>
+                      </Card>
+                    </SpringIn>
+                  </>
+                )}
+
+                {/* Analytics Tab */}
+                {activeTab === "analytics" && (
+                  <SpringIn delay={2} variant="card">
+                    <Card title="Gauge Analytics" withBorder overrides={{}}>
+                      <div className="py-8 text-center">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--surface-secondary)]">
+                          <span className="text-2xl">📊</span>
+                        </div>
+                        <h3 className="mb-2 text-lg font-semibold text-[var(--content-primary)]">
+                          Historical Analytics Coming Soon
+                        </h3>
+                        <p className="mx-auto max-w-md text-sm text-[var(--content-secondary)]">
+                          Track your gauge&apos;s performance over time,
+                          including vote trends, boost history, and incentive
+                          efficiency.
+                        </p>
+                        <div className="mx-auto mt-6 grid max-w-lg grid-cols-3 gap-4">
+                          <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
+                            <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                              Current Boost
+                            </p>
+                            <p className="font-mono text-xl font-semibold text-[var(--content-primary)]">
+                              {boostMultiplier.toFixed(2)}x
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
+                            <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                              Incentives
+                            </p>
+                            <p className="font-mono text-xl font-semibold text-[var(--content-primary)]">
+                              ${totalIncentivesUSD.toFixed(0)}
+                            </p>
+                          </div>
+                          <div className="rounded-lg bg-[var(--surface-secondary)] p-4">
+                            <p className="mb-1 text-2xs uppercase tracking-wider text-[var(--content-tertiary)]">
+                              APY
+                            </p>
+                            <p
+                              className={`font-mono text-xl font-semibold ${apy && apy > 0
+                                  ? "text-[var(--positive)]"
+                                  : "text-[var(--content-primary)]"
+                                }`}
+                            >
+                              {formatAPY(apy)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  </SpringIn>
+                )}
+              </>
+            ))}
+        </>
+      )}
+    </div>
   )
 }

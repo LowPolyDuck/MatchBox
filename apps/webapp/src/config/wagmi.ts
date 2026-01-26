@@ -49,7 +49,14 @@ export const wagmiConfig: Config = createConfig({
   chains: [mezoMainnet, mezoTestnet],
   connectors: [injected()],
   transports: {
-    [mezoMainnet.id]: http(),
-    [mezoTestnet.id]: http(),
+    [mezoMainnet.id]: http(undefined, {
+      batch: true,
+      fetchOptions: { cache: "no-store" },
+    }),
+    [mezoTestnet.id]: http(undefined, {
+      batch: true,
+      fetchOptions: { cache: "no-store" },
+    }),
   },
+  pollingInterval: 30_000,
 })

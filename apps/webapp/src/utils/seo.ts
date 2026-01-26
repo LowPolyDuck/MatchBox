@@ -27,5 +27,5 @@ export const getBaseUrl = () => {
 }
 
 export const getOgImageUrl = () => {
-  return `${getBaseUrl()}/og.png`
+  return `${getBaseUrl()}/ogx.png`
 }

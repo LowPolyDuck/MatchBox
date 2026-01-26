@@ -109,9 +109,8 @@ function SettingsIcon(): JSX.Element {
 
 const navItems = [
   { href: "/dashboard", label: "dashboard" },
-  { href: "/boost", label: "boost" },
-  { href: "/incentives", label: "incentives" },
-  { href: "/gauges", label: "gauges" },
+  { href: "/boost", label: "veMEZO" },
+  { href: "/incentives", label: "veBTC" },
 ]
 
 export function Header(): JSX.Element {
@@ -121,6 +120,8 @@ export function Header(): JSX.Element {
   const { theme: currentTheme } = useTheme()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [walletDrawerOpen, setWalletDrawerOpen] = useState(false)
+
+  const isHomePage = router.pathname === "/"
 
   useEffect(() => {
     setMobileMenuOpen(false)
@@ -203,7 +204,11 @@ export function Header(): JSX.Element {
 
           {/* Desktop Actions */}
           <div className="hidden items-center gap-3 md:flex">
-            <HeaderTicker />
+            {!isHomePage && (
+              <div className="ticker-navbar-enter">
+                <HeaderTicker />
+              </div>
+            )}
 
             <a
               href="https://matchbox.mallard.sh/docs"

@@ -1,4 +1,3 @@
-import { Layout } from "@/components/Layout"
 import { SpringIn } from "@/components/SpringIn"
 import { TransferProfileModal } from "@/components/TransferProfileModal"
 import type { GaugeProfile } from "@/config/supabase"
@@ -81,7 +80,6 @@ function TokenIcon({
       alt={symbol}
       width={size}
       height={size}
-      className="inline-block flex-shrink-0 align-middle"
     />
   )
 }
@@ -149,13 +147,12 @@ function VeBTCLockCard({
             <div className="flex min-w-0 flex-col gap-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-sm font-medium ${
-                    profile?.display_name ||
+                  className={`text-sm font-medium ${profile?.display_name ||
                     profile?.description ||
                     profile?.profile_picture_url
-                      ? "text-[var(--positive)]"
-                      : "text-[var(--negative)]"
-                  }`}
+                    ? "text-[var(--positive)]"
+                    : "text-[var(--negative)]"
+                    }`}
                 >
                   {profile?.display_name || `veBTC #${lock.tokenId.toString()}`}
                 </span>
@@ -218,11 +215,10 @@ function VeBTCLockCard({
                 Current Boost
               </p>
               <span
-                className={`font-mono text-sm font-medium tabular-nums ${
-                  boostMultiplier > 1
-                    ? "text-[var(--positive)]"
-                    : "text-[var(--content-primary)]"
-                }`}
+                className={`font-mono text-sm font-medium tabular-nums ${boostMultiplier > 1
+                  ? "text-[var(--positive)]"
+                  : "text-[var(--content-primary)]"
+                  }`}
               >
                 {boostMultiplier.toFixed(2)}x
               </span>
@@ -237,8 +233,8 @@ function VeBTCLockCard({
                     View Gauge →
                   </span>
                   {!isLoadingAPY &&
-                  apy !== null &&
-                  (apy > 0 || apy === Number.POSITIVE_INFINITY) ? (
+                    apy !== null &&
+                    (apy > 0 || apy === Number.POSITIVE_INFINITY) ? (
                     <div className="mt-1 flex w-fit items-center rounded border border-[var(--positive-subtle)] bg-[var(--positive-subtle)] px-1.5 py-0.5">
                       <span className="text-xs font-medium text-[var(--positive)]">
                         {formatAPY(apy)} APY
@@ -318,7 +314,7 @@ function VeMEZOLockCard({
               veMEZO #{lock.tokenId.toString()}
             </span>
             {(apy !== null && apy > 0) ||
-            (upcomingAPY !== null && upcomingAPY > 0) ? (
+              (upcomingAPY !== null && upcomingAPY > 0) ? (
               <div className="mt-1 flex items-center gap-1.5">
                 {/* Current APY */}
                 {apy !== null && apy > 0 && (
@@ -384,11 +380,10 @@ function VeMEZOLockCard({
               Can Vote
             </p>
             <span
-              className={`text-sm font-medium ${
-                canVoteInCurrentEpoch
-                  ? "text-[var(--positive)]"
-                  : "text-[var(--warning)]"
-              }`}
+              className={`text-sm font-medium ${canVoteInCurrentEpoch
+                ? "text-[var(--positive)]"
+                : "text-[var(--warning)]"
+                }`}
             >
               {canVoteInCurrentEpoch ? "Yes" : "Next Epoch"}
             </span>
@@ -478,9 +473,8 @@ function ClaimableRewardRow({
     <div>
       {/* Main row */}
       <div
-        className={`flex items-center justify-between gap-4 py-4 max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-4 ${
-          isLast && !isExpanded ? "" : "border-b border-[var(--border)]"
-        }`}
+        className={`flex items-center justify-between gap-4 py-4 max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-4 ${isLast && !isExpanded ? "" : "border-b border-[var(--border)]"
+          }`}
       >
         {/* Left side: Collapsible chevron and Token ID badge */}
         <button
@@ -490,9 +484,8 @@ function ClaimableRewardRow({
           aria-label={isExpanded ? "Collapse details" : "Expand details"}
         >
           <span
-            className={`inline-block text-sm text-[var(--content-secondary)] transition-transform duration-200 ${
-              isExpanded ? "rotate-90" : ""
-            }`}
+            className={`inline-block text-sm text-[var(--content-secondary)] transition-transform duration-200 ${isExpanded ? "rotate-90" : ""
+              }`}
           >
             ▸
           </span>
@@ -507,26 +500,26 @@ function ClaimableRewardRow({
             </span>
             {((apy !== null && apy > 0) ||
               (upcomingAPY !== null && upcomingAPY > 0)) && (
-              <div className="flex items-center gap-1">
-                {apy !== null && apy > 0 && (
-                  <span className="inline-flex items-center rounded-sm border border-[rgba(var(--positive-rgb),0.3)] bg-[rgba(var(--positive-rgb),0.15)] px-1 py-0.5 text-[9px] font-semibold text-[var(--positive)]">
-                    {formatAPY(apy)}
-                  </span>
-                )}
-                {upcomingAPY !== null && upcomingAPY > 0 && (
-                  <>
-                    {apy !== null && apy > 0 && (
-                      <span className="text-[8px] text-[var(--content-tertiary)]">
-                        →
-                      </span>
-                    )}
-                    <span className="inline-flex items-center rounded-sm border border-[var(--border)] bg-[var(--surface-secondary)] px-1 py-0.5 text-[9px] font-medium text-[var(--content-secondary)]">
-                      {formatAPY(upcomingAPY)}
+                <div className="flex items-center gap-1">
+                  {apy !== null && apy > 0 && (
+                    <span className="inline-flex items-center rounded-sm border border-[rgba(var(--positive-rgb),0.3)] bg-[rgba(var(--positive-rgb),0.15)] px-1 py-0.5 text-[9px] font-semibold text-[var(--positive)]">
+                      {formatAPY(apy)}
                     </span>
-                  </>
-                )}
-              </div>
-            )}
+                  )}
+                  {upcomingAPY !== null && upcomingAPY > 0 && (
+                    <>
+                      {apy !== null && apy > 0 && (
+                        <span className="text-[8px] text-[var(--content-tertiary)]">
+                          →
+                        </span>
+                      )}
+                      <span className="inline-flex items-center rounded-sm border border-[var(--border)] bg-[var(--surface-secondary)] px-1 py-0.5 text-[9px] font-medium text-[var(--content-secondary)]">
+                        {formatAPY(upcomingAPY)}
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
           </div>
         </button>
 
@@ -577,9 +570,8 @@ function ClaimableRewardRow({
       {/* Collapsible details section */}
       {isExpanded && (
         <div
-          className={`bg-[var(--surface-secondary)] px-6 py-4 ${
-            isLast ? "" : "border-b border-[var(--border)]"
-          }`}
+          className={`bg-[var(--surface-secondary)] px-6 py-4 ${isLast ? "" : "border-b border-[var(--border)]"
+            }`}
         >
           {/* Claimable rewards breakdown */}
           <div className={hasPendingRewards ? "mb-4" : ""}>
@@ -692,9 +684,8 @@ function ProjectedRewardRow({
   return (
     <div>
       <div
-        className={`flex items-center justify-between gap-4 py-4 max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-4 ${
-          isLast && !isExpanded ? "" : "border-b border-[var(--border)]"
-        }`}
+        className={`flex items-center justify-between gap-4 py-4 max-[600px]:flex-col max-[600px]:items-stretch max-[600px]:gap-4 ${isLast && !isExpanded ? "" : "border-b border-[var(--border)]"
+          }`}
       >
         {/* Left side: Collapsible chevron and Token ID badge */}
         <button
@@ -704,9 +695,8 @@ function ProjectedRewardRow({
           aria-label={isExpanded ? "Collapse details" : "Expand details"}
         >
           <span
-            className={`inline-block text-sm text-[var(--content-secondary)] transition-transform duration-200 ${
-              isExpanded ? "rotate-90" : ""
-            }`}
+            className={`inline-block text-sm text-[var(--content-secondary)] transition-transform duration-200 ${isExpanded ? "rotate-90" : ""
+              }`}
           >
             ▸
           </span>
@@ -769,9 +759,8 @@ function ProjectedRewardRow({
       {/* Collapsible details section */}
       {isExpanded && (
         <div
-          className={`bg-[var(--surface-secondary)] px-6 py-4 ${
-            isLast ? "" : "border-b border-[var(--border)]"
-          }`}
+          className={`bg-[var(--surface-secondary)] px-6 py-4 ${isLast ? "" : "border-b border-[var(--border)]"
+            }`}
         >
           {/* Pending rewards breakdown */}
           <div>
@@ -993,7 +982,7 @@ export default function DashboardPage(): JSX.Element {
   const canShowTransferButton = ownedGauges.length >= 2
 
   return (
-    <Layout>
+    <>
       <div className="flex flex-col gap-6">
         <header>
           <h1 className="mb-2 text-2xl font-semibold text-[var(--content-primary)]">
@@ -1036,32 +1025,31 @@ export default function DashboardPage(): JSX.Element {
                           </p>
                           {((totalAPY !== null && totalAPY > 0) ||
                             (upcomingAPY !== null && upcomingAPY > 0)) && (
-                            <div className="inline-flex items-center gap-1.5">
-                              {totalAPY !== null && totalAPY > 0 && (
-                                <span className="inline-flex items-center rounded-full border border-[rgba(var(--positive-rgb),0.4)] bg-[rgba(var(--positive-rgb),0.15)] px-2.5 py-1 text-xs font-semibold text-[var(--positive)]">
-                                  {formatAPY(totalAPY)} APY
-                                </span>
-                              )}
-                              {upcomingAPY !== null && upcomingAPY > 0 && (
-                                <>
-                                  {totalAPY !== null && totalAPY > 0 && (
-                                    <span className="text-xs text-[var(--content-tertiary)]">
-                                      →
-                                    </span>
-                                  )}
-                                  <span
-                                    className={`inline-flex items-center rounded-full border px-2.5 py-1 font-medium ${
-                                      totalAPY === null || totalAPY === 0
+                              <div className="inline-flex items-center gap-1.5">
+                                {totalAPY !== null && totalAPY > 0 && (
+                                  <span className="inline-flex items-center rounded-full border border-[rgba(var(--positive-rgb),0.4)] bg-[rgba(var(--positive-rgb),0.15)] px-2.5 py-1 text-xs font-semibold text-[var(--positive)]">
+                                    {formatAPY(totalAPY)} APY
+                                  </span>
+                                )}
+                                {upcomingAPY !== null && upcomingAPY > 0 && (
+                                  <>
+                                    {totalAPY !== null && totalAPY > 0 && (
+                                      <span className="text-xs text-[var(--content-tertiary)]">
+                                        →
+                                      </span>
+                                    )}
+                                    <span
+                                      className={`inline-flex items-center rounded-full border px-2.5 py-1 font-medium ${totalAPY === null || totalAPY === 0
                                         ? "border-[rgba(var(--positive-rgb),0.4)] bg-[rgba(var(--positive-rgb),0.15)] text-xs font-semibold text-[var(--positive)]"
                                         : "border-[var(--border)] bg-[var(--surface)] text-[11px] text-[var(--content-secondary)]"
-                                    }`}
-                                  >
-                                    {formatAPY(upcomingAPY)}
-                                  </span>
-                                </>
-                              )}
-                            </div>
-                          )}
+                                        }`}
+                                    >
+                                      {formatAPY(upcomingAPY)}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            )}
                         </div>
 
                         {/* Total USD Value - prominent display */}
@@ -1412,6 +1400,6 @@ export default function DashboardPage(): JSX.Element {
         ownedGauges={ownedGauges}
         onTransferComplete={refetchProfiles}
       />
-    </Layout>
+    </>
   )
 }

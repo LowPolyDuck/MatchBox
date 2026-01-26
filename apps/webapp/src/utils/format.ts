@@ -1,8 +1,5 @@
-import { FixedPointNumber } from "@thesis-co/cent"
-
 /**
  * Format a bigint value as a fixed-point number with the specified decimals.
- * Uses @thesis-co/cent for precise fixed-point math.
  * Truncates to 4 significant digits and drops trailing zeros.
  */
 export function formatFixedPoint(value: bigint, decimals = 18n): string {
@@ -10,23 +7,40 @@ export function formatFixedPoint(value: bigint, decimals = 18n): string {
     return "0"
   }
 
-  try {
-    const fp = new FixedPointNumber(value, decimals)
-    return fp.toPrecision(4n).toString({ trailingZeroes: false })
-  } catch (error) {
-    // Log debug info for unexpected errors
-    console.error("formatFixedPoint error:", {
-      value: value.toString(),
-      decimals: decimals.toString(),
-      error,
+  const divisor = 10n ** decimals
+  const integerPart = value / divisor
+  const fractionalPart = value % divisor
+
+  if (integerPart >= 1000000n) {
+    return Number(integerPart).toLocaleString(undefined, {
+      maximumFractionDigits: 0,
     })
-    // Fallback: show raw value divided by decimals as approximate
-    const divisor = 10n ** decimals
-    if (value < divisor) {
-      return "<0.0001"
-    }
-    return (value / divisor).toString()
   }
+
+  if (integerPart >= 1000n) {
+    const decimal = Number(fractionalPart) / Number(divisor)
+    const total = Number(integerPart) + decimal
+    return total.toLocaleString(undefined, { maximumFractionDigits: 2 })
+  }
+
+  if (integerPart >= 1n) {
+    const decimal = Number(fractionalPart) / Number(divisor)
+    const total = Number(integerPart) + decimal
+    return total.toLocaleString(undefined, { maximumFractionDigits: 4 })
+  }
+
+  const decimal = Number(value) / Number(divisor)
+  if (decimal >= 0.0001) {
+    return decimal.toLocaleString(undefined, { maximumFractionDigits: 6 })
+  }
+  if (decimal >= 0.00000001) {
+    return decimal.toLocaleString(undefined, { maximumFractionDigits: 8 })
+  }
+  if (decimal > 0) {
+    return decimal.toExponential(4)
+  }
+
+  return "<0.0001"
 }
 
 /**

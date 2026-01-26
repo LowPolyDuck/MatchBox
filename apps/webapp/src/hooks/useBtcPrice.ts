@@ -54,6 +54,7 @@ export function useBtcPrice(): {
     ],
     query: {
       refetchInterval: 60000, // Refetch every minute
+      refetchOnWindowFocus: false,
     },
   })
 
@@ -66,7 +67,7 @@ export function useBtcPrice(): {
   if (roundData && decimals !== undefined) {
     const [, answer, , updatedAtTimestamp] = roundData
     // Convert the price from fixed-point to a number
-    price = Number(answer) / Math.pow(10, decimals)
+    price = Number(answer) / 10 ** decimals
     updatedAt = new Date(Number(updatedAtTimestamp) * 1000)
   }
 
